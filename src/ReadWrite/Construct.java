@@ -55,7 +55,7 @@ public class Construct {
                     " difference: " + timeDifference + " goaltime: " + goalTime);
 
             if (output.length() > 64 || output.length() == 0 || (output.length() == 64 && (output.charAt(0) != '0' ||
-                    output.charAt(1) != '0'))){
+                    output.charAt(1) != '0')) || (output.length() == 63 && output.charAt(0) != '0')){
                 System.out.println("construct calcTarget output too big");
                 return "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
             }
