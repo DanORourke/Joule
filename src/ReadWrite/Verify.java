@@ -121,7 +121,7 @@ public class Verify {
         String txiMerkle = new MathStuff().createTxMerkleRoot(txiList);
         String pubKey = db.getPubKeyFromHash((String)allTxiTxo.get(0).get(3));
 
-        if (!new MathStuff().testUnLock(pubKey, unlock, txiMerkle)){
+        if (!new MathStuff().testSig(pubKey, unlock, txiMerkle)){
             return false;
         }
 
@@ -130,8 +130,6 @@ public class Verify {
 
     private boolean verifyFullTweetTxoList (ArrayList<String> tx, ArrayList<ArrayList> txoList,
                                        ArrayList<ArrayList> txiList, ArrayList<ArrayList> allTxiTxo){
-        //check numbertotxos and miner add up
-        //check indexes are numbers, all different
 
         if (!txoIndexesDifferentNumbers(txoList)){
             return false;
@@ -201,16 +199,8 @@ public class Verify {
         return true;
     }
 
-    private String makeAllTxi(ArrayList<ArrayList> txi){
-        String allTxi = "";
-        for (ArrayList<String> txiInstance : txi){
-            allTxi = allTxi + txiInstance.get(1);
-        }
-        return allTxi;
-    }
-
     private boolean verifyMinerRewardFromFullTweet(String numerToMine) {
-        //TODO need to access db for this, need block to look at tx array, not sure if it will ever happen
+        //TODO need to access db for this, need block to look at tx array
         return true;
     }
 

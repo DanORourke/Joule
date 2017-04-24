@@ -477,10 +477,6 @@ public class BigWindow {
             i +=2;
         }
         return nameToUse + ":\n\n" + feed;
-//        for (String pastTweet : myPastTweets){
-//            feed = nameToUse + ": " + pastTweet + "\n\n" + feed;
-//        }
-//        return feed;
     }
 
     private void setProfileTab(){

@@ -197,7 +197,7 @@ public class Construct {
 
     private String unlockTxi(String merkle, ArrayList<String> userInfo){
         String privKey = userInfo.get(4);
-        return new MathStuff().unlockTxo(privKey, merkle);
+        return new MathStuff().signTxo(privKey, merkle);
     }
 
     private ArrayList<ArrayList> getSpendableTx(String username){

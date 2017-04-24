@@ -86,10 +86,6 @@ public class NodeServer implements Runnable  {
                 nb.addTalker(talker, networkType);
 
             } catch (SocketTimeoutException e) {
-
-//            }catch (InterruptedException e) {
-//                System.out.println("NodeServer networkType: " + networkType + " interrupted");
-//                Thread.currentThread().interrupt();
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -32,10 +32,6 @@ public class Miner implements Runnable {
         setKey();
     }
 
-    public String getUsername(){
-        return username;
-    }
-
     public void run(){
         mineLoop();
     }
@@ -106,58 +102,9 @@ public class Miner implements Runnable {
         return results;
     }
 
-    public void setWait(boolean wait){
+    public void setWait(boolean wait) {
         this.wait = wait;
         this.reset = true;
-    }
-
-    private void mineBlock(String height){
-        //TODO  make this better
-        int nonce = 0;
-        while (nonce <= 10 && !Thread.currentThread().isInterrupted()){
-            if (reset){
-                reset = false;
-                makeHeaderToHash();
-            }
-            reset = false;
-            String hash = new MathStuff().createHash(headerToHash + String.valueOf(nonce));
-            System.out.println("Miner mineBlock hash: " + hash + " wait: " + wait + " height: " + height +
-                    " nonce: " + nonce);
-            if (!wait){
-                if (hash.compareTo(target) <= 0){
-                    wait = true;
-                    System.out.println("Miner found new block");
-                    createAndSendBlock(hash, nonce);
-                }else {
-                    //Wait so as to not bog down my machine
-                    try {
-                        Thread.sleep(1000);
-                        nonce ++;
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        System.out.println("Miner sleep interrupted while mining");
-                        return;
-                    }
-                }
-            }else {
-                //Wait so as to not bog down my machine
-                try {
-                    Thread.sleep(1000);
-                    makeHeaderToHash();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    System.out.println("Miner sleep interrupted while waiting");
-                    return;
-                }
-            }
-        }
-        if (!Thread.currentThread().isInterrupted()){
-            makeHeaderToHash();
-        }
-        if (Thread.currentThread().isInterrupted()){
-            Thread.currentThread().interrupt();
-            return;
-        }
     }
 
     private void createAndSendBlock(String hash, int nonce){

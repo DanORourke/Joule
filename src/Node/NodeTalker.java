@@ -93,10 +93,6 @@ public class NodeTalker {
         return socket.getPort();
     }
 
-    public String getConnectedHost(){
-        return socket.getInetAddress().getHostName();
-    }
-
     public void setMyIp(String myIp) {
         this.myIp = myIp;
         sendString(getHello());
@@ -155,12 +151,6 @@ public class NodeTalker {
             theirIp = getConnectedIp();
             theirPort = getConnectedPort();
             theirNetName = friendNetName;
-
-//        }else if (theirIp.equals(friendIpAddress) && theirPort == friendPort){
-//            theirNetName = friendNetName;
-//            db.newFriend(theirIp, theirPort, theirNetName, nameOfNetwork);
-//            long time = new Date().getTime();
-//            db.updateLastContact(theirIp, theirPort, nameOfNetwork, time);
 
         }else if (addressIsLegal(friendIpAddress, friendPort) &&
                 nb.isNewFriend(friendIpAddress,friendPort, this)){
@@ -566,5 +556,4 @@ public class NodeTalker {
         String ask = "getTx," + txHash;
         sendString(ask);
     }
-
 }

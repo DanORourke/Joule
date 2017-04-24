@@ -77,10 +77,6 @@ public class NodeListener extends Thread{
         }
     }
 
-    public Boolean getStop() {
-        return stop;
-    }
-
     public void setStop(Boolean stop) {
         this.stop = stop;
         System.out.println("stop: " + stop);

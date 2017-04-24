@@ -1,6 +1,7 @@
 package ReadWrite;
 
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -21,14 +22,8 @@ public class MathStuff {
         String salt = createSalt();
         newUser.add(salt);
         newUser.add(createPassHash(salt, password));
-        String[] keys = new String[0];
-        try {
-            keys = createNewKeys();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
+        String[] keys = createNewECCKeys();
+        //TODO handle errors
         newUser.add(keys[0]);
         newUser.add(keys[1]);
         String pubKeyHash = createHash(keys[0]);
@@ -37,33 +32,42 @@ public class MathStuff {
         return newUser;
     }
 
-    private String[] createNewKeys() throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private String[] createNewECCKeys(){
+        try{
+            KeyPairGenerator kpg;
+            kpg = KeyPairGenerator.getInstance("EC","SunEC");
+            ECGenParameterSpec ecsp;
+            ecsp = new ECGenParameterSpec("secp192r1");
+            kpg.initialize(ecsp);
 
-        KeyPairGenerator kpg = null;
-        KeyPair kp = null;
-        try {
-            kpg = KeyPairGenerator.getInstance("DSA", "SUN");
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG", "SUN");
-            kpg.initialize(1024, random);
-            kp = kpg.genKeyPair();
+            KeyPair kp = kpg.genKeyPair();
+            PrivateKey privKey = kp.getPrivate();
+            PublicKey pubKey = kp.getPublic();
+
+            KeyFactory fact = KeyFactory.getInstance("EC");
+            X509EncodedKeySpec xSpec = fact.getKeySpec(pubKey,
+                    X509EncodedKeySpec.class);
+            String pubKeyS = Base64.getEncoder().encodeToString(xSpec.getEncoded());
+
+            PKCS8EncodedKeySpec pSpec = fact.getKeySpec(privKey,
+                    PKCS8EncodedKeySpec.class);
+            byte[] packed = pSpec.getEncoded();
+            String privKeyS = Base64.getEncoder().encodeToString(packed);
+
+            System.out.println("createNewEcKeys pub:" + pubKeyS);
+            System.out.println("createNewEcKeys priv:" + privKeyS);
+
+            return new String[]{pubKeyS, privKeyS};
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         } catch (NoSuchProviderException e) {
             e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
         }
-
-        KeyFactory fact = KeyFactory.getInstance("DSA");
-        X509EncodedKeySpec xSpec = fact.getKeySpec(kp.getPublic(),
-                X509EncodedKeySpec.class);
-        //TODO make base64
-        String pubKey = Base64.getEncoder().encodeToString(xSpec.getEncoded());
-        //String pubKey = convertByteToHex(xSpec.getEncoded());
-
-        PKCS8EncodedKeySpec pSpec = fact.getKeySpec(kp.getPrivate(),
-                PKCS8EncodedKeySpec.class);
-        byte[] packed = pSpec.getEncoded();
-        String privKey = Base64.getEncoder().encodeToString(packed);
-        //String privKey = convertByteToHex(packed);
-
-        return new String[]{pubKey, privKey};
+        return new String[]{};
     }
 
     public String createPassHash(String salt, String password){
@@ -92,18 +96,7 @@ public class MathStuff {
             sb.append(Integer.toString((byteData[i] & 0xff) + 0x100, 16).substring(1));
         }
 
-        //System.out.println("Hex format : " + sb.toString());
         return sb.toString();
-    }
-
-    private byte[] convertHexToByte(String s){
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
-        }
-        return data;
     }
 
     private String createSalt(){
@@ -116,17 +109,17 @@ public class MathStuff {
         return salt;
     }
 
-    public String unlockTxo(String privKey, String merkle){
+    public String signTxo(String privKey, String merkle){
         try {
             byte[] clear = Base64.getDecoder().decode(privKey);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(clear);
-            KeyFactory fact = KeyFactory.getInstance("DSA");
+            KeyFactory fact = KeyFactory.getInstance("EC");
             PrivateKey priv = fact.generatePrivate(keySpec);
-            Signature dsa = Signature.getInstance("SHA1withDSA", "SUN");
-            dsa.initSign(priv);
+            Signature ecdsa = Signature.getInstance("SHA1withECDSA", "SunEC");
+            ecdsa.initSign(priv);
             byte[] merkleBytes = Base64.getDecoder().decode(merkle);
-            dsa.update(merkleBytes);
-            byte[] signatureBytes = dsa.sign();
+            ecdsa.update(merkleBytes);
+            byte[] signatureBytes = ecdsa.sign();
             return Base64.getEncoder().encodeToString(signatureBytes);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -144,18 +137,18 @@ public class MathStuff {
 
     }
 
-    public boolean testUnLock(String pubKey, String unlock, String merkle){
-        System.out.println("MathStuff testUnlock merkle: " + merkle + " unlock: " + unlock + " pubKey: " + pubKey);
+    public boolean testSig(String pubKey, String signature, String merkle){
+        System.out.println("MathStuff testUnlock merkle: " + merkle + " unlock: " + signature + " pubKey: " + pubKey);
         try {
             byte[] data = Base64.getDecoder().decode(pubKey);
             X509EncodedKeySpec spec = new X509EncodedKeySpec(data);
-            KeyFactory fact = KeyFactory.getInstance("DSA");
+            KeyFactory fact = KeyFactory.getInstance("EC");
             PublicKey pub = fact.generatePublic(spec);
-            Signature sig = Signature.getInstance("SHA1withDSA", "SUN");
+            Signature sig = Signature.getInstance("SHA1withECDSA", "SunEC");
             sig.initVerify(pub);
             sig.update(Base64.getDecoder().decode(merkle));
-            boolean verify = sig.verify(Base64.getDecoder().decode(unlock));
-            System.out.println("Math testUnlock: " + verify);
+            boolean verify = sig.verify(Base64.getDecoder().decode(signature));
+            System.out.println("Math testSig: " + verify);
             return verify;
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();

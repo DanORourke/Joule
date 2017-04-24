@@ -30,16 +30,13 @@ public class SQLiteJDBC {
             System.exit(0);
         }
         System.out.println("Opened database successfully");
-        pubKey1  = "MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2N" +
-                "WPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzr" +
-                "ith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0Hgm" +
-                "dRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkIm" +
-                "og9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGAEOLIWUsJhonGhEO8uXcV73MCVJidwrlgoAC1oPmTPN/8/gFHQCUpdgvu" +
-                "g1Src3qqz5r//0ziDDzbbCs0BRoVG73uI5W02PuoalsFzMF1mjF8di2ZU4KTtlGUOciDK+vzhzjp8GhnPAK3B/OVDiHoojXAp" +
-                "j637FKMUNtpcdBrTQM=";
+        pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
+                "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
 
         initializeDb();
+        //turn on to give server access to first block
+        //addSeedUsers();
     }
 
     private synchronized void initializeDb(){
@@ -127,23 +124,6 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeeds(){
-//        String pubKey1 = "MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2N" +
-//                "WPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzr" +
-//                "ith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0Hgm" +
-//                "dRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkIm" +
-//                "og9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGAEOLIWUsJhonGhEO8uXcV73MCVJidwrlgoAC1oPmTPN/8/gFHQCUpdgvu" +
-//                "g1Src3qqz5r//0ziDDzbbCs0BRoVG73uI5W02PuoalsFzMF1mjF8di2ZU4KTtlGUOciDK+vzhzjp8GhnPAK3B/OVDiHoojXAp" +
-//                "j637FKMUNtpcdBrTQM=";
-
-//        String pubKey2 = "MIIBtzCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH7WT2N" +
-//                "WPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaFpEy9nXzr" +
-//                "ith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6OuqC+VdMCz0Hgm" +
-//                "dRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6ASQ7zKTxvqhRkIm" +
-//                "og9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoDgYQAAoGATPjHUzadEwdKKL1gXHTiSDkVepkkQjx1+SsuW0FvqzBRMhNBnKhxYHK+" +
-//                "5gv57FyflgGt4fgirEDlj7eb3fiAuawtkhg0HMOx14NSF92OQkaNRzJO9qfnF961op7/tnX4gJMGX4Pc5nlyNw1Ge8St6i4X5" +
-//                "SaZCsrwlaK33B/QHHo=";
-
-        //addSeedUsers();
         addSeedBlock();
         addSeedNodes();
     }
@@ -359,78 +339,14 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeedUsers(){
-        //String pubKey1Hash = new MathStuff().createHash(pubKey1);
-        //String pubKey2Hash = new MathStuff().createHash(pubKey2);
-        //alternateFollow(pubKey2Hash, "YES", "asd");
         alternateFollow(pubKey1Hash, "YES", "asc");
         String asdName = "asd";
         String asdSalt = "9608756233693360688593294264682270";
         String asdHash = "7e9ae91dd29b15ee423d9ca3c8c3cb378fbabdf5370c16629cc6314685414a92";
-        String asdPrivKey = "MIIBSwIBADCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH" +
-                "7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaF" +
-                "pEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6Ouq" +
-                "C+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6A" +
-                "SQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoEFgIUQsPhTnw5PsKEKQ6ccGzay2o4+wc=";
+        String asdPrivKey = "MDkCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEHzAdAgEBBBjSbOVB7EEdAo+Whh7BdT2tGKsSR9UEIUc=";
         String asdCoinPerTweet = "1";
         addUser(asdName, asdSalt, asdHash, pubKey1, asdPrivKey, pubKey1Hash, asdCoinPerTweet);
 
-//        String zxcName = "zxc";
-//        String zxcSalt = "6050317315187288081859487558715318";
-//        String zxcHash = "814026ed339ff00e15188035236cfd894d86fc324b6359ba8a4fae69b406106f";
-//        String zxcPrivKey = "MIIBSwIBADCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH" +
-//                "7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaF" +
-//                "pEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6Ouq" +
-//                "C+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6A" +
-//                "SQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoEFgIUJWIKDhc11/pp7JhmW07uSoLOSoo=";
-//        String zxcCoinPerTweet = "1";
-//        addUser(zxcName, zxcSalt, zxcHash, pubKey2, zxcPrivKey, pubKey2Hash, zxcCoinPerTweet);
-
-
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//
-//            String sql = "INSERT INTO USER (USERNAME,SALT,HASH, PUBKEY, PRIVKEY, PUBKEYHASH, OUTSIDEIP, " +
-//                    "OUTSIDEPORT, INSIDEIP, INSIDEPORT, NETNAME, COINPERTWEET) " +
-//                    "VALUES ('asd', '9608756233693360688593294264682270', " +
-//                    "'7e9ae91dd29b15ee423d9ca3c8c3cb378fbabdf5370c16629cc6314685414a92', '" + pubKey1 + "', " +
-//                    "'MIIBSwIBADCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH" +
-//                    "7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaF" +
-//                    "pEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6Ouq" +
-//                    "C+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6A" +
-//                    "SQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoEFgIUQsPhTnw5PsKEKQ6ccGzay2o4+wc=', " +
-//                    "'dba01024afcd153fa4fff0fc3187ef17d40ba475f8eb67d21b287a43135e0937', 'NA', 0, " +
-//                    "'127.0.0.1', '54354', 'asd', '1');";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("SeedUser1 added");
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//        }
-//
-//        Statement stmt2 = null;
-//        try {
-//            stmt2 = c.createStatement();
-//
-//            String sql = "INSERT INTO USER (USERNAME,SALT,HASH, PUBKEY, PRIVKEY, PUBKEYHASH, OUTSIDEIP, " +
-//                    "OUTSIDEPORT, INSIDEIP, INSIDEPORT, NETNAME, COINPERTWEET) " +
-//                    "VALUES ('zxc', '6050317315187288081859487558715318', " +
-//                    "'814026ed339ff00e15188035236cfd894d86fc324b6359ba8a4fae69b406106f', '" + pubKey2 + "', " +
-//                    "'MIIBSwIBADCCASwGByqGSM44BAEwggEfAoGBAP1/U4EddRIpUt9KnC7s5Of2EbdSPO9EAMMeP4C2USZpRV1AIlH" +
-//                    "7WT2NWPq/xfW6MPbLm1Vs14E7gB00b/JmYLdrmVClpJ+f6AR7ECLCT7up1/63xhv4O1fnxqimFQ8E+4P208UewwI1VBNaF" +
-//                    "pEy9nXzrith1yrv8iIDGZ3RSAHHAhUAl2BQjxUjC8yykrmCouuEC/BYHPUCgYEA9+GghdabPd7LvKtcNrhXuXmUr7v6Ouq" +
-//                    "C+VdMCz0HgmdRWVeOutRZT+ZxBxCBgLRJFnEj6EwoFhO3zwkyjMim4TwWeotUfI0o4KOuHiuzpnWRbqN/C/ohNWLx+2J6A" +
-//                    "SQ7zKTxvqhRkImog9/hWuWfBpKLZl6Ae1UlZAFMO/7PSSoEFgIUJWIKDhc11/pp7JhmW07uSoLOSoo=', " +
-//                    "'c58542a57b3d431fee4267bf2b0605628368613d7872319009789aaa861d2ff7', 'NA', 0, " +
-//                    "'127.0.0.1', '54364', 'zxc', '1');";
-//            stmt2.executeUpdate(sql);
-//            stmt2.close();
-//            c.commit();
-//            System.out.println("SeedUser2 added");
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//        }
     }
 
     private synchronized void createUserTable(){
