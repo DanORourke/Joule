@@ -32,6 +32,7 @@ public class Main {
             NodeBase nb = new NodeBase(db, one, two);
             FXGUI.begin(db, nb);
         }else {
+            //tells user acceptable parameters
             System.out.println("Invalid Arguments\n" +
                     "-outside or without arguments will only talk to the outside world\n" +
                     "-inside, -argument will only talk on local network 'argument'\n" +

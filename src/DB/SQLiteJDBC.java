@@ -13,8 +13,11 @@ public class SQLiteJDBC {
     private boolean firstTime;
     private String pubKey1;
     private String pubKey1Hash;
+    private String seedTime;
+    private String seedTarget;
 
     public SQLiteJDBC() {
+        //connect to db
         this.c = null;
         try {
             Class.forName("org.sqlite.JDBC");
@@ -30,17 +33,22 @@ public class SQLiteJDBC {
             System.exit(0);
         }
         System.out.println("Opened database successfully");
-        pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
-                "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
-        pubKey1Hash = new MathStuff().createHash(pubKey1);
 
+        //set up db if first time opened
         initializeDb();
         //turn on to give server access to first block
         //addSeedUsers();
     }
 
     private synchronized void initializeDb(){
+        //set up db if first time opened, boolean firstTime affects network procedure
         Statement stmt = null;
+        //set up first block info
+        pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
+                "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
+        pubKey1Hash = new MathStuff().createHash(pubKey1);
+        seedTime = "1491007727121";
+        seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
@@ -53,6 +61,7 @@ public class SQLiteJDBC {
             if (!rs.isBeforeFirst() ) {
                 System.out.println("No data");
                 firstTime = true;
+                // set up db
                 createTables();
             }
             rs.close();
@@ -68,6 +77,7 @@ public class SQLiteJDBC {
     }
 
     private synchronized void createTables(){
+        // create tables in the db
         createUserTable();
         createFriendsTable();
         createBlockChain();
@@ -79,10 +89,9 @@ public class SQLiteJDBC {
         createProfileTable();
         createFollowTable();
         createNetworkTable();
-        //TODO remove this temp testing thing, replace with good seed nodes and block and tx
+        //add first block and network contact
         addSeeds();
 
-        //TODO useful reads of block chain, other stuff i cant think of
     }
 
     private synchronized void createNetworkTable(){
@@ -124,7 +133,9 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeeds(){
+        //add first block
         addSeedBlock();
+        //add network contact
         addSeedNodes();
     }
 
@@ -299,20 +310,16 @@ public class SQLiteJDBC {
         ArrayList<String> txo = new ArrayList<>();
         ArrayList<String> txList = new ArrayList<>();
 
-        //long time = new java.util.Date().getTime();
-        String time = "1491007727121";
-        String target = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-        String txHash = new MathStuff().createHash( "1" + "0" + "0" + time + "0");
-        tx.addAll(Arrays.asList(txHash, "1", "0", "0", time, "0"));
+        String txHash = new MathStuff().createHash( "1" + "0" + "0" + seedTime + "0");
+        tx.addAll(Arrays.asList(txHash, "1", "0", "0", seedTime, "0"));
         txo.addAll(Arrays.asList("25", "0", pubKey1));
         txoList.add(txo);
         fullTweet.add(tx);
         fullTweet.add(txoList);
 
         String merkle = new MathStuff().createBlockMerkleRoot(null, tx.get(0));
-        String headerhash = new MathStuff().createHash("0" + merkle + "0" + target + "0");
-        header.addAll(Arrays.asList(headerhash, "0", merkle, "0", target, "0"));
+        String headerhash = new MathStuff().createHash("0" + merkle + "0" + seedTarget + "0");
+        header.addAll(Arrays.asList(headerhash, "0", merkle, "0", seedTarget, "0"));
 
         fullBlock.add(header);
         fullBlock.add(fullTweet);
@@ -323,7 +330,6 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeedNodes(){
-        //TODO add real seeds
         Statement stmt = null;
         try {
             stmt = c.createStatement();
@@ -418,12 +424,6 @@ public class SQLiteJDBC {
 
             Statement stmt2 = c.createStatement();
 
-//            String sql2 = "INSERT INTO PROFILETABLE (PUBKEYHASH, PUBKEY, NAME, ABOUT, FOLLOW) VALUES " +
-//                    "('" + pubKeyHash + "', '" + pubKey + "', 'NA', 'NA', 'YES');";
-//            stmt2.executeUpdate(sql2);
-//            stmt2.close();
-//            c.commit();
-//            System.out.println("Profile added");
         }catch (Exception e){
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
         }
@@ -516,18 +516,6 @@ public class SQLiteJDBC {
         }
         System.out.println("db.newFriend ip: " + ip + " port: " + port + " netName: " + netName +
                 " nameOfNetWork: " + nameOfNetwork + " time: " + time);
-//        Statement stmt = null;
-//        try {
-//            c.setAutoCommit(false);
-//            stmt = c.createStatement();
-//            String sql = "INSERT OR IGNORE INTO FRIENDS (IP, PORT, NETNAME, NAMEOFNETWORK, LASTCONTACT) VALUES ('" + ip + "', " +
-//                    port + ", '" + netName + "', '" + nameOfNetwork + "', " + time + ");";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
 
         PreparedStatement preparedStatement = null;
         int entered = 0;
@@ -544,26 +532,6 @@ public class SQLiteJDBC {
             return false;
         }
         return entered == 1;
-    }
-
-    private synchronized boolean checkIfNew(String ip , int port){
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM FRIENDS WHERE IP = '" + ip +"' " +
-                    "AND PORT = " + port + ";" );
-            if (!rs.isBeforeFirst()){
-                stmt.close();
-                rs.close();
-                return false;
-            }
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return true;
     }
 
     public synchronized ArrayList<String> getBlockHeight(){

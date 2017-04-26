@@ -41,34 +41,30 @@ public class NodeBase {
     private NodeServer insideServer;
 
     public NodeBase(SQLiteJDBC db){
-        this.db = db;
-        this.outsideTalkers = new ArrayList<>();
-        this.insideTalkers = new ArrayList<>();
-        this.allTalkers = new ArrayList<>();
-        this.blockHeight = Integer.valueOf(db.getBlockHeight().get(0));
-        this.blockChainHeight = 0;
-        this.gettingBlocks = false;
-        setIpPort("outside", null);
-        callEnoughFriends();
-        startNewServer("outside");
-        scheduleNetworkCheck();
+        this(db, "outside", null);
     }
 
     public NodeBase(SQLiteJDBC db, String networkType, String insideName){
+        //set variables
         this.db = db;
         this.outsideTalkers = new ArrayList<>();
         this.insideTalkers = new ArrayList<>();
         this.allTalkers = new ArrayList<>();
-        this.blockHeight = Integer.valueOf(db.getBlockHeight().get(0));
+        updateBlockHeight();
         this.blockChainHeight = 0;
         this.gettingBlocks = false;
         setIpPort(networkType, insideName);
+
+        //start contacting others
         callEnoughFriends();
+        //start listening for others
         startNewServer(networkType);
+        //setup periodic calling of friends
         scheduleNetworkCheck();
     }
 
     private void scheduleNetworkCheck(){
+        //call others periodically, start quickly if first time and callEnoughFriends only has the seed network
         int initialDelay = ((db.getFirstTime()) ? 5 : 60);
 
         ScheduledExecutorService scheduledExecutorService =
@@ -85,6 +81,7 @@ public class NodeBase {
     }
 
     private void callEnoughFriends(){
+        //contact others in P2P network
         try {
             new NodeParty(this, db).start();
         } catch (IOException e) {
@@ -93,7 +90,9 @@ public class NodeBase {
     }
 
     public void startNewServer(String whichOne){
+        //listen for others who may call you
         if (whichOne.equals("outside")){
+            //listen for others calling from outside ip
             this.outsideServerExecutor = Executors.newSingleThreadExecutor();
             if (username != null){
                 try {
@@ -104,6 +103,7 @@ public class NodeBase {
                 }
             }
         }else if (whichOne.equals("inside")){
+            //listen for others calling from a local ip
             this.insideServerExecutor = Executors.newSingleThreadExecutor();
             if (username != null){
                 try {
@@ -114,6 +114,7 @@ public class NodeBase {
                 }
             }
         }else {
+            //listen for both
             startNewServer("outside");
             startNewServer("inside");
         }
@@ -121,6 +122,7 @@ public class NodeBase {
     }
 
     private void stopServer(String networkTypeAsk){
+        //stop listening for others
         if (networkTypeAsk.equals("outside")){
             if (outsideServer != null){
                 outsideServer.setStop();
@@ -140,7 +142,8 @@ public class NodeBase {
 
     }
 
-    public void newServer(String networkTypeAsk){
+    private void newServer(String networkTypeAsk){
+        //reset servers  delay so server will be stopped before trying to listen on same port again
         stopServer(networkTypeAsk);
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
@@ -151,12 +154,8 @@ public class NodeBase {
         }, 2*1000);
     }
 
-
-    public void serverFailed(String nameOfNetwork){
-        stopServer(nameOfNetwork);
-    }
-
-    public void setIpPort(String networkType, String insideName){
+    private void setIpPort(String networkType, String insideName){
+        //set network variables
         this.networkType = networkType;
         this.nameOfInsideNetwork = insideName;
 
@@ -182,26 +181,30 @@ public class NodeBase {
                 insideNetName = ipPort.get(2);
             }
         } else {
-            ArrayList<String> ipPort = db.getIpPort(username, "outside");
-            if (ipPort.size() == 3){
-                outsideIp = ipPort.get(0);
-                outsidePort = Integer.valueOf(ipPort.get(1));
-                outsideNetName = ipPort.get(2);
+            ArrayList<String> ipPortOutside = db.getIpPort(username, "outside");
+            if (ipPortOutside.size() == 3){
+                outsideIp = ipPortOutside.get(0);
+                outsidePort = Integer.valueOf(ipPortOutside.get(1));
+                outsideNetName = ipPortOutside.get(2);
             }
-            ArrayList<String> ipPort2 = db.getIpPort(username, nameOfInsideNetwork);
-            if (ipPort2.size() == 3){
-                insideIp = ipPort2.get(0);
-                insidePort = Integer.valueOf(ipPort2.get(1));
-                insideNetName = ipPort2.get(2);
+            ArrayList<String> ipPortInside = db.getIpPort(username, nameOfInsideNetwork);
+            if (ipPortInside.size() == 3){
+                insideIp = ipPortInside.get(0);
+                insidePort = Integer.valueOf(ipPortInside.get(1));
+                insideNetName = ipPortInside.get(2);
             }
         }
     }
 
-    public void setUsername(String username){
+    private void setUsername(String username){
         this.username = username;
     }
 
-    public void updateTalkersUser(String networkTypeAsk){
+    public void serverFailed(String nameOfNetwork){
+        stopServer(nameOfNetwork);
+    }
+
+    private void updateTalkersUser(String networkTypeAsk){
         if (networkTypeAsk.equals("outside")){
             System.out.println("nb updateTalkersUser outsideTalkers.size(): " + outsideTalkers.size());
             for (NodeTalker talker : outsideTalkers){
@@ -218,7 +221,7 @@ public class NodeBase {
         }
     }
 
-    public void startNewMiner(){
+    private void startNewMiner(){
         this.minerExecutor = Executors.newSingleThreadExecutor();
         System.out.println("startminer username: " + username);
         try {
@@ -524,6 +527,7 @@ public class NodeBase {
 
     }
     public void updateBaseHeights(int talkerBlockHeight,int otherBlockHeight){
+        updateBlockHeight();
         if (blockHeight < talkerBlockHeight){
             blockHeight = talkerBlockHeight;
         }
@@ -745,6 +749,7 @@ public class NodeBase {
     }
 
     public int[] getHeights(){
+        updateBlockHeight();
         return new int[]{blockHeight, blockChainHeight, allTalkers.size()};
     }
 
@@ -797,6 +802,7 @@ public class NodeBase {
     }
 
     public int getBlockChainHeight(){
+        updateBlockHeight();
         if (allTalkers.size() == 0){
             return blockHeight;
         }else if (blockHeight > blockChainHeight){
@@ -804,5 +810,9 @@ public class NodeBase {
         }else {
             return blockChainHeight;
         }
+    }
+
+    private void updateBlockHeight(){
+        blockHeight = Integer.valueOf(db.getBlockHeight().get(0));
     }
 }

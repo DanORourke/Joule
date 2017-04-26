@@ -88,12 +88,6 @@ public class Login{
         grid.add(actionTarget, 0, 6, 2, 1);
         grid.setHalignment(actionTarget, HPos.CENTER);
 
-        //RowConstraints actionConstraint = new RowConstraints();
-
-//        ta.setWrapText(true);
-//        ta.setEditable(false);
-//        grid.add(ta, 0, 6, 2, 2 );
-
         sign.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -104,7 +98,6 @@ public class Login{
                 actionTarget.setText("No Good.  Try Again");
                 userTextField.clear();
                 pwBox.clear();
-                //stageClass.changeScene();
 
             }
         });
