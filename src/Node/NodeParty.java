@@ -3,6 +3,8 @@ package Node;
 import DB.SQLiteJDBC;
 
 import java.io.IOException;
+import java.net.BindException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -53,11 +55,10 @@ public class NodeParty extends Thread {
                              int maxSize, String networkType){
         int j = talkers.size();
         if (!friends.isEmpty()){
-            for(int i = 0; i < friends.size() || j >= maxSize; i++){
+            for(int i = 0; i < friends.size() && j < maxSize; i++){
                 ArrayList<String> friend = friends.get(i);
                 String friendIp = friend.get(0);
                 int friendPort = Integer.valueOf(friend.get(1));
-                String friendNetName = friend.get(2);
                 if (nb.newFriendParty(friendIp, friendPort, networkType)){
                     try {
                         System.out.println("NodeParty callFriends calling IP: " + friendIp +
@@ -67,13 +68,17 @@ public class NodeParty extends Thread {
                         NodeTalker talker = new NodeTalker(socket, db, nb, "talk", networkType);
                         nb.addTalker(talker, networkType);
                         j++;
-                    } catch (IOException e) {
+                    } catch (BindException e) {
+                        System.out.println("NodeParty callFriends cannot bind to port");
+                    } catch (ConnectException e) {
                         System.out.println("NodeParty callFriends connection refused IP: " + friendIp +
+                                " Port : " + friendPort);
+                    } catch (IOException e) {
+                        System.out.println("NodeParty callFriends connection failed IP: " + friendIp +
                                 " Port : " + friendPort);
                     }
                 }
             }
         }
     }
-
 }

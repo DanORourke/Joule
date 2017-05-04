@@ -25,7 +25,7 @@ public class BigWindow {
 
     private NodeBase nb;
     private String username;
-    private FXGUI stageClass;
+    private Main stageClass;
     private SQLiteJDBC db;
     private TextArea feedArea;
     private TextArea myTweetArea;
@@ -43,7 +43,7 @@ public class BigWindow {
     private int myLastFeedNumber;
     private ObservableList<Tx> txData;
 
-    public BigWindow(FXGUI stageClass, SQLiteJDBC db, String username, NodeBase nb) {
+    public BigWindow(Main stageClass, SQLiteJDBC db, String username, NodeBase nb) {
 
         this.nb = nb;
         nb.setWindow(this);
@@ -392,7 +392,8 @@ public class BigWindow {
         myTweetArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         myTweetArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         myTweetsGrid.add(myTweetArea, 0, 0, 4, 1);
-        myTweetArea.appendText(createMyTweets());
+        myTweetArea.setText(createMyTweets());
+        myTweetArea.setScrollTop(0);
 
 
         TextArea myTweetTweetArea = new TextArea();
@@ -439,10 +440,10 @@ public class BigWindow {
                     actionTarget.setText("Report Sent");
                     String nameToUse = whatNameToUse();
                     if (myLastTweetNumber == 0){
-                        myTweetArea.appendText(tweet + "\nNew\n\n");
+                        myTweetArea.setText(createMyTweets());
                     }
                     if (myLastFeedNumber == 0 && db.doIFollow(myProfile.getHash(), username)){
-                        feedArea.appendText(nameToUse + ":\n" + tweet + "\nNew\n\n");
+                        feedArea.setText(createTweetsFeed());
                     }
                     myTweetTweetArea.clear();
                 }else {
@@ -473,7 +474,7 @@ public class BigWindow {
         String feed = "";
         int i = 0;
         while (i < myPastTweets.size()){
-            feed = myPastTweets.get(i) + "\n"  + db.getTimeOfTweet(myPastTweets.get(i+1)) + "\n\n" + feed;
+            feed = feed + myPastTweets.get(i) + "\n"  + db.getTimeOfTweet(myPastTweets.get(i+1)) + "\n\n";
             i +=2;
         }
         return nameToUse + ":\n\n" + feed;
@@ -1288,10 +1289,10 @@ public class BigWindow {
         }
         String results = "";
 
-        //TODO add time element, now top equals newer
+        //now top equals newer
         for (ArrayList<String> tweet : pastTweets){
-            results = tweet.get(2) + "\n" + tweet.get(0) + ":\n" + tweet.get(1) + "\n" +
-                    db.getTimeOfTweet(tweet.get(3)) + "\n\n" + results;
+            results = results + tweet.get(2) + "\n" + tweet.get(0) + ":\n" + tweet.get(1) + "\n" +
+                    db.getTimeOfTweet(tweet.get(3)) + "\n\n";
         }
         return results;
     }
@@ -1316,7 +1317,7 @@ public class BigWindow {
         //TODO too many calls
         int i = 0;
         while (i < tweets.size()){
-            results = tweets.get(i) + "\n"  + db.getTimeOfTweet(tweets.get(i+1)) + "\n" + results;
+            results = results + tweets.get(i) + "\n"  + db.getTimeOfTweet(tweets.get(i+1)) + "\n\n";
             i +=2;
         }
         return name + "\n" + results;
@@ -1384,7 +1385,8 @@ public class BigWindow {
         feedArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         feedArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         feedGrid.add(feedArea, 0, 0, 4, 1);
-        feedArea.appendText(createTweetsFeed());
+        feedArea.setText(createTweetsFeed());
+        feedArea.setScrollTop(0);
 
 
         TextArea feedTweetArea = new TextArea();
@@ -1431,10 +1433,10 @@ public class BigWindow {
                     actionTarget.setText("Report Sent");
                     String nameToUse = whatNameToUse();
                     if (myLastTweetNumber == 0){
-                        myTweetArea.appendText(tweet + "\nNew\n\n");
+                        myTweetArea.setText(createMyTweets());
                     }
                     if (myLastFeedNumber == 0 && db.doIFollow(myProfile.getHash(), username)){
-                        feedArea.appendText(nameToUse + ":\n" +tweet + "\nNew\n\n");
+                        feedArea.setText(createTweetsFeed());
                     }
                     feedTweetArea.clear();
                 }else {
@@ -1459,17 +1461,17 @@ public class BigWindow {
         while (i < pastTweets.size()){
             if (pastTweets.get(i).equals("NA")){
                 if (pastTweets.get(i + 1).equals(myProfile.getHash())) {
-                    feed = whatNameToUse() + ":\n" + pastTweets.get(i + 2) + "\n" +
-                            db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n"+ feed;
+                    feed = feed + whatNameToUse() + ":\n" + pastTweets.get(i + 2) + "\n" +
+                            db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n";
                     i += 4;
                 }else {
-                    feed = pastTweets.get(i + 1) + ": " + pastTweets.get(i + 2) + "\n" +
-                            db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n"+ feed;
+                    feed = feed + pastTweets.get(i + 1) + ":\n" + pastTweets.get(i + 2) + "\n" +
+                            db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n";
                     i += 4;
                 }
             }else {
-                feed = pastTweets.get(i) + ":\n" + pastTweets.get(i + 2) + "\n" +
-                        db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n"+ feed;
+                feed = feed + pastTweets.get(i) + ":\n" + pastTweets.get(i + 2) + "\n" +
+                        db.getTimeOfTweet(pastTweets.get(i + 3)) + "\n\n";
                 i += 4;
             }
         }
@@ -1489,8 +1491,9 @@ public class BigWindow {
 
     public void addTweet(String name, String tweet){
         System.out.println("Window addTweet: " + name +  ": " + tweet);
-        feedArea.appendText(name + ":\n" + tweet + "\nNew\n\n");
+        if (myLastFeedNumber == 0){
+            feedArea.setText(createMyTweets());
+        }
     }
-
 }
 

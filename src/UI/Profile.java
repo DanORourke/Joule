@@ -3,6 +3,7 @@ package UI;
 import javafx.beans.property.SimpleStringProperty;
 
 public class Profile {
+    //used as entries in tables in reporters and search tabs
     private SimpleStringProperty hash;
     private SimpleStringProperty name;
     private SimpleStringProperty follow;

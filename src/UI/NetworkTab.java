@@ -23,6 +23,7 @@ import javafx.util.Callback;
 import java.util.ArrayList;
 
 public class NetworkTab extends Tab {
+    //tab for either inside network or outside network depending on network name
     private SQLiteJDBC db;
     private NodeBase nb;
     private String networkName;
@@ -39,7 +40,7 @@ public class NetworkTab extends Tab {
     }
 
     private void setTab() {
-//        set the ip you tell others and port you are listening on
+//        set the ip and port you tell others you are listening on
         String name;
         if (networkName.equals("outside")){
             name = "Out";

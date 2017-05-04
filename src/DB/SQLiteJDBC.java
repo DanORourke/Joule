@@ -36,8 +36,7 @@ public class SQLiteJDBC {
 
         //set up db if first time opened
         initializeDb();
-        //turn on to give server access to first block
-        //addSeedUsers();
+
     }
 
     private synchronized void initializeDb(){
@@ -47,7 +46,7 @@ public class SQLiteJDBC {
         pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
                 "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
-        seedTime = "1491007727121";
+        seedTime = "1493593832000";
         seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
@@ -63,6 +62,8 @@ public class SQLiteJDBC {
                 firstTime = true;
                 // set up db
                 createTables();
+                //turn on to give server access to first block
+                //addSeedUsers();
             }
             rs.close();
             stmt.close();
@@ -137,6 +138,7 @@ public class SQLiteJDBC {
         addSeedBlock();
         //add network contact
         addSeedNodes();
+
     }
 
     private synchronized void createOpenTxoTable(){
@@ -334,7 +336,7 @@ public class SQLiteJDBC {
         try {
             stmt = c.createStatement();
             String sql = "INSERT INTO FRIENDS (IP,PORT,NETNAME, NAMEOFNETWORK) VALUES " +
-                    "('73.246.234.225', '54321', 'linuxhome', 'outside');";
+                    "('73.246.234.225', '54321', 'Joule', 'outside');";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -849,7 +851,8 @@ public class SQLiteJDBC {
         return keys;
     }
 
-    public synchronized ArrayList<ArrayList> getSpendableTxo(String pubKeyHash, String txPerTweet, ArrayList<String> miningInfo){
+    public synchronized ArrayList<ArrayList> getSpendableTxo(String pubKeyHash, String txPerTweet,
+                                                             ArrayList<String> miningInfo){
         //TODO update this, make fewer calls
         int offset = 0;
         int totalSpendable = 0;

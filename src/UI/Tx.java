@@ -3,6 +3,7 @@ package UI;
 import javafx.beans.property.SimpleStringProperty;
 
 public class Tx {
+    //used as entry in table in bank tab
     private SimpleStringProperty hash;
     private SimpleStringProperty type;
     private SimpleStringProperty number;

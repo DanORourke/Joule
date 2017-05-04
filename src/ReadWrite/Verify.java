@@ -2,7 +2,6 @@ package ReadWrite;
 
 import DB.SQLiteJDBC;
 import Node.NodeBase;
-
 import java.util.ArrayList;
 
 public class Verify {
@@ -11,8 +10,6 @@ public class Verify {
     public Verify(SQLiteJDBC db){
         this.db = db;
     }
-
-
 
     public boolean isTweetVerified(ArrayList<ArrayList> fullTweet){
         System.out.println("Verify isTweetVerified fullTweet: " + fullTweet);
@@ -23,13 +20,12 @@ public class Verify {
         ArrayList<ArrayList> txoList = fullTweet.get(1);
         String type = tx.get(1);
         if (type.equals("1")){
-            //TODO should not get here, only check tweetbase when checking a block, ?might give it
+            //should not get here, only check tweetbase when checking a block
             return verifyTweetBaseTxFromFullTweet(tx, txoList);
         }else{
             ArrayList<ArrayList> txiList = fullTweet.get(2);
             return verifyFullTweet(tx, txoList, txiList);
         }
-        //return false;
     }
 
     private boolean verifyMostTweetBase(ArrayList<String> tx){
@@ -200,7 +196,7 @@ public class Verify {
     }
 
     private boolean verifyMinerRewardFromFullTweet(String numerToMine) {
-        //TODO need to access db for this, need block to look at tx array
+        //TODO make this
         return true;
     }
 

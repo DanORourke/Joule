@@ -23,11 +23,11 @@ import javafx.scene.text.Text;
 
 public class Login{
     private final GridPane grid;
-    private final FXGUI stageClass;
+    private final Main stageClass;
     private final SQLiteJDBC db;
     private final NodeBase nb;
 
-    public  Login(FXGUI stageClass, SQLiteJDBC db, NodeBase nb){
+    public  Login(Main stageClass, SQLiteJDBC db, NodeBase nb){
         this.stageClass = stageClass;
         this.db = db;
         this.grid = new GridPane();
@@ -129,6 +129,7 @@ public class Login{
     }
 
     private void logAttempt(String username, String password){
+        //ask db if valid
         boolean enter = db.login(username, password);
         if (enter){
             startUser(username);
@@ -137,6 +138,7 @@ public class Login{
     }
 
     private void newUser(String username, String password){
+        //ask db if valid
         boolean enter = db.newUser(username, password);
         if (enter){
             startUser(username);
@@ -145,6 +147,7 @@ public class Login{
     }
 
     private void startUser(String username){
+        //tell nb who user is and to start miner, update connections with user info
         nb.startUser(username);
     }
 

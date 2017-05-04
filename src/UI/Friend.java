@@ -4,6 +4,7 @@ package UI;
 import javafx.beans.property.SimpleStringProperty;
 
 public class Friend {
+    //used as entry in network tab tables
     private SimpleStringProperty ip;
     private SimpleStringProperty port;
     private SimpleStringProperty name;

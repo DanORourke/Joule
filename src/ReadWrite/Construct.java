@@ -11,26 +11,27 @@ public class Construct {
     private int txMaxInBlock = 100;
     public Construct(SQLiteJDBC db){
         this.db = db;
-        //TODO convert stored keys to something more manageable, different format.
-        //TODO pressing enter in the tweet breaks everything, fix that
+        //TODO create tweet and block objects, stop using a bunch of lists inside of lists
     }
 
     public ArrayList<ArrayList> constructBlockToMine(String pubKey){
+        //construct partial block needed for mining
 
+        //get needed info
         ArrayList<String> blockInfo = db.getMiningInfo();
         ArrayList<String> txToAddArray = createTxToAddArray(blockInfo);
-
+        //construct the tweet base tx
         String numberToAddTotal = txToAddArray.get(txToAddArray.size()-1);
         txToAddArray.remove(txToAddArray.size()-1);
         ArrayList<ArrayList> tweetBaseTx = constructTweetBaseTx(pubKey, numberToAddTotal);
-
+        //construct partial header
         String merkleRoot = new MathStuff().createBlockMerkleRoot(txToAddArray, (String)tweetBaseTx.get(0).get(0));
         String height = String.valueOf(Integer.valueOf(blockInfo.get(0)) + 1);
         String previousHash = blockInfo.get(1);
         ArrayList<String> header = new ArrayList<>();
         String target =  calculateTarget(blockInfo, Integer.valueOf(height));
         header.addAll(Arrays.asList(height, merkleRoot, previousHash, target));
-
+        //add all together
         ArrayList<ArrayList> total = new ArrayList<>();
         total.addAll(Arrays.asList(header, tweetBaseTx, txToAddArray));
         System.out.println("Construct block to mine total: " + total);
@@ -42,20 +43,25 @@ public class Construct {
             System.out.println("Construct calc target mod not 100");
             return blockInfo.get(2);
         }else {
+            //use difference in timestamps over past 100 blocks to calculate new mining target
             BigInteger time1 = BigInteger.valueOf(db.getTimeOfPastBlock(blockInfo, 0));
             BigInteger time100 = BigInteger.valueOf(db.getTimeOfPastBlock(blockInfo, 99));
             BigInteger timeDifference = time1.subtract(time100);
             //10 minute goal time per block
             BigInteger goalTime = BigInteger.valueOf(99*10*60*1000);
             BigInteger oldTarget = new BigInteger(blockInfo.get(2),16);
-            BigInteger holdingPattern = oldTarget.multiply(timeDifference);
+            BigInteger holdingPattern = timeDifference.multiply(oldTarget);
             BigInteger newTarget = holdingPattern.divide(goalTime);
             String output = newTarget.toString(16);
             System.out.println("construct calcTarget output: " + output + " time1:" + time1 + " time100: " + time100 +
                     " difference: " + timeDifference + " goaltime: " + goalTime);
-
-            if (output.length() > 64 || output.length() == 0 || (output.length() == 64 && (output.charAt(0) != '0' ||
-                    output.charAt(1) != '0')) || (output.length() == 63 && output.charAt(0) != '0')){
+            //make sure target is 64 digits long with at least 2 leading zeros
+//            if (output.length() > 64 || output.length() == 0 || (output.length() == 64 && (output.charAt(0) != '0' ||
+//                    output.charAt(1) != '0')) || (output.length() == 63 && output.charAt(0) != '0')){
+//                System.out.println("construct calcTarget output too big");
+//                return "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+//            }
+            if (output.length() > 62){
                 System.out.println("construct calcTarget output too big");
                 return "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
             }
@@ -67,6 +73,7 @@ public class Construct {
     }
 
     private ArrayList<String> createTxToAddArray(ArrayList<String> blockInfo){
+        //collect txs to add into the block you are making, add mining reward information at end
         System.out.println("Construct createTxToAddArray started");
         ArrayList<String> txToAddFromDb = db.getTxToAddToBlock();
         System.out.println("Construct createTxToAddArray txToAddFromDb: " + txToAddFromDb);
@@ -91,16 +98,20 @@ public class Construct {
     }
 
     public ArrayList<ArrayList> constructTweetBaseTx(String pubKey, String numberToMinerTotal){
+        //construct a tweet base tx with all of its component parts
         ArrayList<ArrayList> fullTweet = new ArrayList<>();
         ArrayList<String> tx = new ArrayList<>();
         ArrayList<ArrayList> txo = new ArrayList<>();
         ArrayList<String> txoInstance = new ArrayList<>();
 
+        //add time and default values to tx
+        //TODO only time ensures unique hash, may want to add more
         long time = new java.util.Date().getTime();
         String hash = new MathStuff().createHash("1" + "0" + "0" + String.valueOf(time) + "0");
         tx.addAll(Arrays.asList(hash, "1", "0", "0", String.valueOf(time), "0"));
         fullTweet.add(tx);
 
+        //add reward, tx position number, and lock to txo
         String minerTotal = String.valueOf(Integer.valueOf(numberToMinerTotal) + getMinerReward());
         txoInstance.addAll(Arrays.asList(minerTotal, "0", pubKey));
         txo.add(txoInstance);
@@ -110,22 +121,25 @@ public class Construct {
     }
 
     private int getMinerReward(){
-        //TODO make official, also same as in verifyTweet
+        //TODO make this respond to inflation in some way, grow with demand, usage. same as in verifyTweet
         return 25;
     }
 
     public ArrayList<ArrayList> constructSimpleTx(String username, String tweet, String type){
+        //constructs the tx used for a standard tweet and a profile tweet
         ArrayList<ArrayList> fullTweet = new ArrayList<>();
         ArrayList<String> tx = new ArrayList<>();
         ArrayList<ArrayList> txoList = new ArrayList<>();
         ArrayList<ArrayList> txiList;
 
+        //find tx whose txo I can now spend as a txi
         ArrayList<ArrayList> spendableTx = getSpendableTx(username);
         if (spendableTx.isEmpty()){
             System.out.println("constructSimpleTx no spendable tx");
             return fullTweet;
         }
 
+        //convert those txo to txi
         txiList = createTxi(spendableTx);
 
         ArrayList<String> userInfo = getUser(username);
@@ -174,11 +188,12 @@ public class Construct {
     }
 
     private ArrayList<ArrayList> createTxi(ArrayList<ArrayList> spendableTx){
-        if (spendableTx.isEmpty()){
-            return spendableTx;
-        }
         int number = 0;
         ArrayList<ArrayList> txi = new ArrayList<>();
+
+        if (spendableTx.isEmpty()){
+            return txi;
+        }
 
         for (ArrayList<String> txo : spendableTx){
             String txiHash = txo.get(0);
@@ -201,7 +216,7 @@ public class Construct {
     }
 
     private ArrayList<ArrayList> getSpendableTx(String username){
-        //TODO update this, make a single call
+        //
         ArrayList<String> userInfo = db.getUserInfo(username);
         String pubKeyHash = userInfo.get(5);
         String txPerTweet = userInfo.get(6);
