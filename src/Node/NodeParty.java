@@ -17,7 +17,7 @@ public class NodeParty extends Thread {
     public NodeParty(NodeBase nb, SQLiteJDBC db) throws IOException {
         this.nb = nb;
         this.db = db;
-        this.timeout = 5000;
+        this.timeout = 1000;
     }
 
     public void run(){
@@ -47,8 +47,8 @@ public class NodeParty extends Thread {
     }
 
     private void callBothFriends(){
-        callOutsideFriends(3);
         callInsideFriends(3);
+        callOutsideFriends(3);
     }
 
     private void callFriends(ArrayList<ArrayList> friends, ArrayList<NodeTalker> talkers,

@@ -10,12 +10,10 @@ import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.RowConstraints;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
@@ -29,7 +27,9 @@ public class NetworkTab extends Tab {
     private String networkName;
     private String username;
     private ObservableList<Friend> friendData;
-    private Label singleLabel;
+    private Label serverLabel;
+    private Label dbLabel;
+
 
     public NetworkTab(SQLiteJDBC db, NodeBase nb, String username, String networkName){
         this.db = db;
@@ -58,32 +58,44 @@ public class NetworkTab extends Tab {
 
         setNetworkConstraints(networkGrid);
 
-        singleLabel = new Label();
+        serverLabel = new Label();
+        serverLabel.setMaxHeight(Double.MAX_VALUE);
+        networkGrid.add(serverLabel, 0, 0, 2, 1);
+
+        dbLabel = new Label();
+        dbLabel.setMaxHeight(Double.MAX_VALUE);
+        networkGrid.add(dbLabel, 0, 1, 2, 1);
         resetServerLabel();
-        networkGrid.add(singleLabel, 0, 0, 4, 2);
 
         Text target = new Text();
-        networkGrid.add(target, 1, 3, 3, 2);
-        networkGrid.setHalignment(target, HPos.CENTER);
+        networkGrid.add(target, 1, 3);
+        GridPane.setHalignment(target, HPos.RIGHT);
+        GridPane.setValignment(target, VPos.CENTER);
 
         TextField ipField0 = new TextField();
         ipField0.setPromptText("IP");
-        networkGrid.add(ipField0, 0, 2);
+        ipField0.setMaxWidth(Double.MAX_VALUE);
 
         TextField ipField1 = new TextField();
         ipField1.setPromptText("IP");
-        networkGrid.add(ipField1, 1, 2);
+        ipField1.setMaxWidth(Double.MAX_VALUE);
 
         TextField ipField2 = new TextField();
         ipField2.setPromptText("IP");
-        networkGrid.add(ipField2, 2, 2);
+        ipField2.setMaxWidth(Double.MAX_VALUE);
 
         TextField ipField3 = new TextField();
         ipField3.setPromptText("IP");
-        networkGrid.add(ipField3, 3, 2);
+        ipField3.setMaxWidth(Double.MAX_VALUE);
+
+        HBox ipBox = new HBox();
+        ipBox.setSpacing(10);
+        ipBox.getChildren().addAll(ipField0, ipField1, ipField2, ipField3);
+        networkGrid.add(ipBox, 0, 2, 2, 1);
 
         Button changeIp = new Button("Change My IP");
-        networkGrid.add(changeIp, 4, 2);
+        changeIp.setMaxWidth(Double.MAX_VALUE);
+        networkGrid.add(changeIp, 2, 2);
         changeIp.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -113,10 +125,10 @@ public class NetworkTab extends Tab {
 
         TextField portField = new TextField();
         portField.setPromptText("Port");
-        networkGrid.add(portField, 0, 3);
+        portField.setMaxWidth(Double.MAX_VALUE);
 
         Button changePortBtn = new Button("Change My Port");
-        networkGrid.add(changePortBtn, 4, 3);
+        changePortBtn.setMaxWidth(Double.MAX_VALUE);
         changePortBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -139,11 +151,15 @@ public class NetworkTab extends Tab {
 
         TextField netNameField = new TextField();
         netNameField.setPromptText("NetName");
-        networkGrid.add(netNameField, 0, 4);
+        netNameField.setMaxWidth(Double.MAX_VALUE);
+
+        VBox portBox = new VBox();
+        portBox.setSpacing(10);
+        portBox.getChildren().addAll(portField, netNameField);
+        networkGrid.add(portBox, 0, 3);
 
         Button changeNetNameBtn = new Button("Change My NetName");
-        networkGrid.add(changeNetNameBtn, 3, 4, 2, 1);
-        networkGrid.setHalignment(changeNetNameBtn, HPos.RIGHT);
+        changeNetNameBtn.setMaxWidth(Double.MAX_VALUE);
         changeNetNameBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -165,40 +181,46 @@ public class NetworkTab extends Tab {
             }
         });
 
-        Button updateTableBtn = new Button("Update Tab");
-        networkGrid.add(updateTableBtn, 4, 1);
-
-        TableView table = createNetworkTable(updateTableBtn);
-        networkGrid.add(table, 0, 5, 5, 1);
+        Button updateTabBtn = new Button("Update Tab");
+        updateTabBtn.setMaxWidth(Double.MAX_VALUE);
+        networkGrid.add(updateTabBtn, 2, 1);
 
         TextField newIpField0 = new TextField();
         newIpField0.setPromptText("IP");
-        networkGrid.add(newIpField0, 0, 6);
+        newIpField0.setMaxWidth(Double.MAX_VALUE);
 
         TextField newIpField1 = new TextField();
         newIpField1.setPromptText("IP");
-        networkGrid.add(newIpField1, 1, 6);
+        newIpField0.setMaxWidth(Double.MAX_VALUE);
 
         TextField newIpField2 = new TextField();
         newIpField2.setPromptText("IP");
-        networkGrid.add(newIpField2, 2, 6);
+        newIpField0.setMaxWidth(Double.MAX_VALUE);
 
         TextField newIpField3 = new TextField();
         newIpField3.setPromptText("IP");
-        networkGrid.add(newIpField3, 3, 6);
+        newIpField0.setMaxWidth(Double.MAX_VALUE);
 
-        Text changeTarget = new Text();
-        networkGrid.add(changeTarget, 4, 6);
+        HBox newIpBox = new HBox();
+        newIpBox.setSpacing(10);
+        newIpBox.getChildren().addAll(newIpField0, newIpField1, newIpField2, newIpField3);
+        networkGrid.add(newIpBox, 0, 5, 2, 1);
 
         TextField newPortField = new TextField();
         newPortField.setPromptText("Port");
-        networkGrid.add(newPortField, 0, 7);
+        newPortField.setMaxWidth(Double.MAX_VALUE);
+        networkGrid.add(newPortField, 0, 6);
 
         Text myCallAction = new Text();
-        networkGrid.add(myCallAction, 3, 7);
+        networkGrid.add(myCallAction, 1, 6);
+        GridPane.setHalignment(myCallAction, HPos.RIGHT);
+
+        TableView table = createNetworkTable(updateTabBtn, myCallAction, target);
+        networkGrid.add(table, 0, 4, 3, 1);
 
         Button callBtn = new Button("Call Address");
-        networkGrid.add(callBtn, 4, 7);
+        callBtn.setMaxWidth(Double.MAX_VALUE);
+        networkGrid.add(callBtn, 2, 6);
         callBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -229,31 +251,40 @@ public class NetworkTab extends Tab {
                 friendData.addAll(fillNetworkTable());
             }
         });
+
+        VBox buttonBox = new VBox();
+        buttonBox.setSpacing(10);
+        buttonBox.getChildren().addAll(changeIp, changePortBtn, changeNetNameBtn);
+        networkGrid.add(buttonBox, 2, 2, 1, 2);
+
+
         setContent(networkGrid);
     }
 
     private void resetServerLabel(){
         ArrayList<String> ipPort = db.getIpPort(username, networkName);
-        String dbLabel;
+        String dbText;
         if (ipPort.size() == 3){
-            dbLabel = "DB Ip: " + ipPort.get(0) + " Port: " + ipPort.get(1) +
+            dbText = "DB Ip: " + ipPort.get(0) + " Port: " + ipPort.get(1) +
             " NetName: " + ipPort.get(2);
         }else{
-            dbLabel = "DB Ip: NA Port: 0 NetName: NA";
+            dbText = "DB Ip: NA Port: 0 NetName: NA";
         }
+        dbLabel.setText(dbText);
+
         ArrayList<String> serverInfo = nb.getServerInfo(networkName);
         System.out.println("Window resetServerLabel ipPort:  " + ipPort + " serverInfo: " + serverInfo);
-        String serverLabel;
+        String serverText;
         if (serverInfo.isEmpty()){
-            serverLabel = "Server Not Listening";
+            serverText = "Server Not Listening";
         }else{
-            serverLabel = "Server IP: " + serverInfo.get(0) + " Port: " + serverInfo.get(1) +
+            serverText = "Server IP: " + serverInfo.get(0) + " Port: " + serverInfo.get(1) +
                     " NetName: " + serverInfo.get(2);
         }
-        singleLabel.setText(serverLabel + "\n" + dbLabel);
+        serverLabel.setText(serverText);
     }
 
-    private TableView createNetworkTable(Button updateTableBtn){
+    private TableView createNetworkTable(Button updateTableBtn, Text myCallAction, Text target){
         TableView table = new TableView();
         table.setEditable(false);
         table.getSelectionModel().setCellSelectionEnabled(true);
@@ -267,6 +298,9 @@ public class NetworkTab extends Tab {
             public void handle(ActionEvent e) {
                 friendData.clear();
                 friendData.addAll(fillNetworkTable());
+                myCallAction.setText("");
+                target.setText("");
+
             }
         });
 
@@ -322,6 +356,13 @@ public class NetworkTab extends Tab {
 
         table.setItems( friendData );
         table.getColumns().addAll(ipCol, portCol, nameCol, disconnectBtnCol);
+
+        table.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
+        ipCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 ); // 25% width
+        portCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
+        nameCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
+        disconnectBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
+
         return table;
     }
 
@@ -338,47 +379,38 @@ public class NetworkTab extends Tab {
 
     private void setNetworkConstraints(GridPane networkGrid) {
         RowConstraints rowConstraint0 = new RowConstraints();
-        rowConstraint0.setVgrow(Priority.NEVER);
+        rowConstraint0.setVgrow(Priority.SOMETIMES);
 
         RowConstraints rowConstraint1 = new RowConstraints();
-        rowConstraint1.setVgrow(Priority.NEVER);
+        rowConstraint1.setVgrow(Priority.SOMETIMES);
 
         RowConstraints rowConstraint2 = new RowConstraints();
-        rowConstraint2.setVgrow(Priority.NEVER);
+        rowConstraint2.setVgrow(Priority.SOMETIMES);
 
         RowConstraints rowConstraint3 = new RowConstraints();
-        rowConstraint3.setVgrow(Priority.NEVER);
+        rowConstraint3.setVgrow(Priority.SOMETIMES);
 
         RowConstraints rowConstraint4 = new RowConstraints();
-        rowConstraint4.setVgrow(Priority.NEVER);
+        rowConstraint4.setVgrow(Priority.ALWAYS);
 
         RowConstraints rowConstraint5 = new RowConstraints();
-        rowConstraint5.setVgrow(Priority.ALWAYS);
+        rowConstraint5.setVgrow(Priority.SOMETIMES);
 
         RowConstraints rowConstraint6 = new RowConstraints();
-        rowConstraint6.setVgrow(Priority.NEVER);
+        rowConstraint6.setVgrow(Priority.SOMETIMES);
 
-        RowConstraints rowConstraint7 = new RowConstraints();
-        rowConstraint7.setVgrow(Priority.NEVER);
         networkGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2, rowConstraint3,
-                rowConstraint4, rowConstraint5, rowConstraint6, rowConstraint7);
+                rowConstraint4, rowConstraint5, rowConstraint6);
 
         ColumnConstraints columnConstraint0 = new ColumnConstraints();
-        columnConstraint0.setPercentWidth(20);
+        columnConstraint0.setPercentWidth(15);
 
         ColumnConstraints columnConstraint1 = new ColumnConstraints();
-        columnConstraint1.setPercentWidth(20);
+        columnConstraint1.setPercentWidth(55);
 
         ColumnConstraints columnConstraint2 = new ColumnConstraints();
-        columnConstraint2.setPercentWidth(20);
-
-        ColumnConstraints columnConstraint3 = new ColumnConstraints();
-        columnConstraint3.setPercentWidth(20);
-
-        ColumnConstraints columnConstraint4 = new ColumnConstraints();
-        columnConstraint4.setPercentWidth(20);
-        columnConstraint4.setHalignment(HPos.RIGHT);
+        columnConstraint2.setPercentWidth(30);
         networkGrid.getColumnConstraints().addAll(columnConstraint0, columnConstraint1,
-                columnConstraint2, columnConstraint3, columnConstraint4);
+                columnConstraint2);
     }
 }

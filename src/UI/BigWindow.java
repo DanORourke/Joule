@@ -18,7 +18,6 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
-
 import java.util.ArrayList;
 
 public class BigWindow {
@@ -87,79 +86,56 @@ public class BigWindow {
         setBankConstraints(bankGrid);
 
         Label spendTextLabel = new Label(getSpendTextLabelText());
-        bankGrid.add(spendTextLabel, 0, 0);
+        spendTextLabel.setMaxHeight(Double.MAX_VALUE);
 
-        Button refreshBtn = new Button("Refresh Tab");
-        bankGrid.add(refreshBtn, 1, 0);
-        refreshBtn.setOnAction(new EventHandler<ActionEvent>() {
+        Pane spacer1 = new Pane();
+        spacer1.setMaxHeight(Double.MAX_VALUE);
 
-            @Override
-            public void handle(ActionEvent e) {
-                spendTextLabel.setText(getSpendTextLabelText());
-                txData.clear();
-                txData.addAll(fillTxTable());
-            }
-        });
+        Label txPerTweetLabel = new Label(getPerTxLabelText());
+        txPerTweetLabel.setMaxHeight(Double.MAX_VALUE);
 
-        Label txPerTweetLabel = new Label("Joules Rewarded Per Report:");
-        bankGrid.add(txPerTweetLabel, 0, 1);
-
-        TextField txPerTweetField = new TextField();
-        txPerTweetField.setText(db.getTxPerTweet(username));
-        bankGrid.add(txPerTweetField, 1, 1);
+        Pane spacer2 = new Pane();
+        spacer2.setMaxHeight(Double.MAX_VALUE);
 
         Text txPerTarget = new Text();
-        bankGrid.add(txPerTarget, 0, 2);
 
-        Button txPerTweetBtn = new Button("Update Reward");
-        bankGrid.add(txPerTweetBtn, 1, 2);
-        txPerTweetBtn.setOnAction(new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent e) {
-                String newReward = txPerTweetField.getText();
-                if (new MathStuff().isNumber(newReward) && Integer.valueOf(newReward) > 0){
-                    db.updateTxPerTweet(username, newReward);
-                    txPerTarget.setFill(Color.BLACK);
-                    txPerTarget.setText("Miner Reward Changed");
-                }else {
-                    txPerTarget.setFill(Color.FIREBRICK);
-                    txPerTarget.setText("ERROR");
-                }
-                txPerTweetField.setText(db.getTxPerTweet(username));
-                spendTextLabel.setText(getSpendTextLabelText());
-            }
-        });
+        VBox vbox1 = new VBox();
+        vbox1.setSpacing(10);
+        vbox1.getChildren().addAll(spendTextLabel, spacer1, txPerTweetLabel, spacer2, txPerTarget);
+        bankGrid.add(vbox1, 0, 0);
 
         Label tableLabel = new Label("Table of Spendable Reports:");
-        bankGrid.add(tableLabel, 0, 3);
+        bankGrid.add(tableLabel, 0, 1);
 
         TableView table = createBankTable();
-        bankGrid.add(table, 0, 4, 2, 1);
+        bankGrid.add(table, 0, 2, 2, 1);
 
         Label giveLabel = new Label("Give Joules:");
-        bankGrid.add(giveLabel, 0, 5);
-
-        Text giveTarget = new Text();
-        bankGrid.add(giveTarget, 1, 5);
 
         TextField giveFullField = new TextField();
         giveFullField.setPromptText("Full Public Key");
         giveFullField.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
-        bankGrid.add(giveFullField, 0, 6);
+        giveFullField.setMaxWidth(Double.MAX_VALUE);
 
         TextField giveHashField = new TextField();
         giveHashField.setPromptText(" Public Key Hash");
         giveHashField.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
-        bankGrid.add(giveHashField, 0, 7);
+        giveHashField.setMaxWidth(Double.MAX_VALUE);
 
         TextField giveNumberField = new TextField();
         giveNumberField.setPromptText("Number of Joules To Give");
         giveNumberField.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
-        bankGrid.add(giveNumberField, 0, 8);
+        giveNumberField.setMaxWidth(Double.MAX_VALUE);
 
-        Button giveFullBtn = new Button("Give To Full Key:");
-        bankGrid.add(giveFullBtn, 1, 6);
+        VBox vbox3 = new VBox();
+        vbox3.setSpacing(10);
+        vbox3.getChildren().addAll(giveLabel, giveFullField, giveHashField, giveNumberField);
+        bankGrid.add(vbox3, 0, 3);
+
+        Text giveTarget = new Text();
+
+        Button giveFullBtn = new Button("Give To Full Key");
+        giveFullBtn.setMaxWidth(Double.MAX_VALUE);
         giveFullBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -178,7 +154,7 @@ public class BigWindow {
                     giveNumberField.clear();
                 }else {
                     giveTarget.setFill(Color.FIREBRICK);
-                    giveTarget.setText("ERROR. JOULES NOT GIVEN");
+                    giveTarget.setText("ERROR");
                     spendTextLabel.setText(getSpendTextLabelText());
                     txData.clear();
                     txData.addAll(fillTxTable());
@@ -189,8 +165,8 @@ public class BigWindow {
             }
         });
 
-        Button giveBtn = new Button("Give To Key Hash:");
-        bankGrid.add(giveBtn, 1, 7);
+        Button giveBtn = new Button("Give To Hash");
+        giveBtn.setMaxWidth(Double.MAX_VALUE);
         giveBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -209,7 +185,7 @@ public class BigWindow {
                     giveNumberField.clear();
                 }else {
                     giveTarget.setFill(Color.FIREBRICK);
-                    giveTarget.setText("ERROR. TX NOT GIVEN");
+                    giveTarget.setText("ERROR");
                     spendTextLabel.setText(getSpendTextLabelText());
                     txData.clear();
                     txData.addAll(fillTxTable());
@@ -220,9 +196,66 @@ public class BigWindow {
             }
         });
 
+        VBox vbox4 = new VBox();
+        vbox4.setSpacing(10);
+        vbox4.getChildren().addAll(giveTarget, giveFullBtn, giveBtn);
+        bankGrid.add(vbox4, 1, 3);
+
+        Button refreshBtn = new Button("Refresh Tab");
+        refreshBtn.setMaxWidth(Double.MAX_VALUE);
+        refreshBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                spendTextLabel.setText(getSpendTextLabelText());
+                txPerTweetLabel.setText(getPerTxLabelText());
+                txData.clear();
+                txData.addAll(fillTxTable());
+                txPerTarget.setText("");
+                giveTarget.setText("");
+                giveFullField.clear();
+                giveHashField.clear();
+                giveNumberField.clear();
+            }
+        });
+
+        TextField txPerTweetField = new TextField();
+        txPerTweetField.setPromptText("Joule Rewarded");
+        txPerTweetField.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
+        txPerTweetField.setMaxWidth(Double.MAX_VALUE);
+
+        Button txPerTweetBtn = new Button("Update Reward");
+        txPerTweetBtn.setMaxWidth(Double.MAX_VALUE);
+        txPerTweetBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                String newReward = txPerTweetField.getText();
+                if (new MathStuff().isNumber(newReward) && Integer.valueOf(newReward) > 0){
+                    db.updateTxPerTweet(username, newReward);
+                    txPerTarget.setFill(Color.BLACK);
+                    txPerTarget.setText("Miner Reward Changed");
+                }else {
+                    txPerTarget.setFill(Color.FIREBRICK);
+                    txPerTarget.setText("ERROR");
+                }
+                txPerTweetField.clear();
+                spendTextLabel.setText(getSpendTextLabelText());
+            }
+        });
+
+        VBox vbox2 = new VBox();
+        vbox2.setSpacing(10);
+        vbox2.getChildren().addAll(refreshBtn, txPerTweetField, txPerTweetBtn);
+        bankGrid.add(vbox2, 1, 0);
+
         tab.setContent(bankGrid);
         tabPane.getTabs().add(tab);
 
+    }
+
+    private String getPerTxLabelText(){
+        return "Joules Rewarded Per Report: " + db.getTxPerTweet(username);
     }
 
     private String getSpendTextLabelText(){
@@ -254,7 +287,7 @@ public class BigWindow {
         table.getColumns().addAll(hashCol, typeCol, numberCol, headerCol);
 
         table.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
-        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 35 ); // 50% width
+        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 35 ); // 35% of Width
         typeCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
         numberCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
         headerCol.setMaxWidth( 1f * Integer.MAX_VALUE * 35 );
@@ -280,27 +313,11 @@ public class BigWindow {
         rowConstraint1.setVgrow(Priority.NEVER);
 
         RowConstraints rowConstraint2 = new RowConstraints();
-        rowConstraint2.setVgrow(Priority.NEVER);
+        rowConstraint2.setVgrow(Priority.ALWAYS);
 
         RowConstraints rowConstraint3 = new RowConstraints();
         rowConstraint3.setVgrow(Priority.NEVER);
-
-        RowConstraints rowConstraint4 = new RowConstraints();
-        rowConstraint4.setVgrow(Priority.ALWAYS);
-
-        RowConstraints rowConstraint5 = new RowConstraints();
-        rowConstraint5.setVgrow(Priority.NEVER);
-
-        RowConstraints rowConstraint6 = new RowConstraints();
-        rowConstraint6.setVgrow(Priority.NEVER);
-
-        RowConstraints rowConstraint7 = new RowConstraints();
-        rowConstraint7.setVgrow(Priority.NEVER);
-
-        RowConstraints rowConstraint8 = new RowConstraints();
-        rowConstraint8.setVgrow(Priority.NEVER);
-        bankGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2, rowConstraint3,
-                rowConstraint4, rowConstraint5, rowConstraint6, rowConstraint7, rowConstraint8);
+        bankGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2);
 
         ColumnConstraints columnConstraint0 = new ColumnConstraints();
         columnConstraint0.setPercentWidth(75);
@@ -363,35 +380,13 @@ public class BigWindow {
         bottomRowConstraint.setPercentHeight(10);
         myTweetsGrid.getRowConstraints().addAll(topRowConstraint, middleRowConstraint, bottomRowConstraint);
 
-        ColumnConstraints columnConstraint0 = new ColumnConstraints();
-        columnConstraint0.setHalignment(HPos.LEFT);
-        columnConstraint0.setFillWidth(true);
-        columnConstraint0.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint1 = new ColumnConstraints();
-        columnConstraint1.setHalignment(HPos.CENTER);
-        columnConstraint1.setFillWidth(true);
-        columnConstraint1.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint2 = new ColumnConstraints();
-        columnConstraint2.setHalignment(HPos.CENTER);
-        columnConstraint2.setFillWidth(true);
-        columnConstraint2.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint3 = new ColumnConstraints();
-        columnConstraint3.setHalignment(HPos.RIGHT);
-        columnConstraint3.setFillWidth(true);
-        columnConstraint3.setHgrow(Priority.ALWAYS);
-        myTweetsGrid.getColumnConstraints().addAll(columnConstraint0, columnConstraint1,
-                columnConstraint2, columnConstraint3);
-
         myTweetArea = new TextArea();
         myTweetArea.setWrapText(true);
         myTweetArea.setEditable(false);
         myTweetArea.setPromptText("Feed");
         myTweetArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         myTweetArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        myTweetsGrid.add(myTweetArea, 0, 0, 4, 1);
+        myTweetsGrid.add(myTweetArea, 0, 0);
         myTweetArea.setText(createMyTweets());
         myTweetArea.setScrollTop(0);
 
@@ -401,13 +396,12 @@ public class BigWindow {
         myTweetTweetArea.setPromptText("Report Here");
         myTweetTweetArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         myTweetTweetArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        myTweetsGrid.add(myTweetTweetArea, 0, 1, 4, 1);
+        myTweetsGrid.add(myTweetTweetArea, 0, 1);
 
         Text actionTarget = new Text();
-        myTweetsGrid.add(actionTarget, 2, 2);
 
         Button cyclePastTweetsBtn = new Button("Last 100");
-        myTweetsGrid.add(cyclePastTweetsBtn, 0, 2);
+        cyclePastTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         cyclePastTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -418,17 +412,19 @@ public class BigWindow {
         });
 
         Button resetTweetsBtn = new Button("Reset");
-        myTweetsGrid.add(resetTweetsBtn, 1, 2);
+        resetTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         resetTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent e) {
                 myLastTweetNumber = 0;
                 myTweetArea.setText(createMyTweets());
+                actionTarget.setText("");
             }
         });
 
         Button tweetBtn = new Button("Report");
+        tweetBtn.setMaxHeight(Double.MAX_VALUE);
         tweetBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -438,7 +434,6 @@ public class BigWindow {
                 if (success){
                     actionTarget.setFill(Color.BLACK);
                     actionTarget.setText("Report Sent");
-                    String nameToUse = whatNameToUse();
                     if (myLastTweetNumber == 0){
                         myTweetArea.setText(createMyTweets());
                     }
@@ -453,7 +448,17 @@ public class BigWindow {
                 System.out.println("Window succes = " + success);
             }
         });
-        myTweetsGrid.add(tweetBtn, 3, 2, 1, 1);
+
+        HBox hbox = new HBox();
+        hbox.setPadding(new Insets(10, 10, 10, 10));
+        hbox.setSpacing(10);
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        hbox.getChildren().addAll(resetTweetsBtn, cyclePastTweetsBtn, spacer, actionTarget, tweetBtn);
+        hbox.setAlignment(Pos.CENTER_RIGHT);
+        myTweetsGrid.add(hbox, 0, 2);
+        GridPane.setFillWidth(hbox, true);
+        GridPane.setHgrow(hbox, Priority.ALWAYS);
 
         tab.setContent(myTweetsGrid);
         tabPane.getTabs().add(tab);
@@ -538,7 +543,7 @@ public class BigWindow {
         Label pubKeyLabel = new Label("Public Key");
         profileGrid.add(pubKeyLabel, 3, 1);
 
-        Label privKeyLabel = new Label("Private Key");
+        Label privKeyLabel = new Label("Private\nKey");
         profileGrid.add(privKeyLabel, 3, 2);
 
         Label nameLabel = new Label("Public Name");
@@ -730,7 +735,6 @@ public class BigWindow {
         table.setEditable(false);
         table.getSelectionModel().setCellSelectionEnabled(true);
         table.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        //TODO make nextTweetBtn do something
 
         ObservableList<Profile> data = FXCollections.observableArrayList();
         resetReporterTable(data);
@@ -825,8 +829,14 @@ public class BigWindow {
                                         if (lastReporterTweetsName != null &&
                                                 lastReporterTweetsName.equals(person.getHash())){
                                             lastReporterTweetsNumber = lastReporterTweetsNumber + 100;
-                                            results.setText(createTweetsResults(person.getHash(), person.getName(),
-                                                    lastReporterTweetsNumber));
+                                            String report = createTweetsResults(person.getHash(), person.getName(),
+                                                    lastReporterTweetsNumber);
+                                            if (report.length() == 0){
+                                                lastReporterTweetsNumber = 0;
+                                                report = createTweetsResults(person.getHash(), person.getName(),
+                                                        lastReporterTweetsNumber);
+                                            }
+                                            results.setText(report);
 
                                         }else {
                                             lastReporterTweetsName = person.getHash();
@@ -895,12 +905,12 @@ public class BigWindow {
         followBtnCol.setCellFactory( cellFactory3 );
 
         table.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
-        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 49 ); // 50% width
+        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 ); // 15% width
         nameCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
-        followCol.setMaxWidth( 1f * Integer.MAX_VALUE * 7 );
-        profileBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 8 );
-        tweetsBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 8 );
-        followBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 13 );
+        followCol.setMaxWidth( 1f * Integer.MAX_VALUE * 10 );
+        profileBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
+        tweetsBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
+        followBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 20 );
 
         table.setItems( data );
         table.getColumns().addAll(hashCol, nameCol, followCol, profileBtnCol, tweetsBtnCol, followBtnCol);
@@ -972,7 +982,7 @@ public class BigWindow {
         searchGrid.add(hashText, 0, 0, 3, 1);
 
         Button hashBtn = new Button("Search Hash");
-        searchGrid.add(hashBtn, 3, 0);
+        hashBtn.setMaxWidth(Double.MAX_VALUE);
 
         TextField nameText = new TextField();
         nameText.setPromptText("Enter Name");
@@ -980,6 +990,7 @@ public class BigWindow {
         searchGrid.add(nameText, 0, 1);
 
         Button nameBtn = new Button("Search Name");
+        nameBtn.setMaxWidth(Double.MAX_VALUE);
         searchGrid.add(nameBtn, 1, 1);
 
         TextField tweetText = new TextField();
@@ -988,7 +999,7 @@ public class BigWindow {
         searchGrid.add(tweetText, 2, 1);
 
         Button tweetBtn = new Button("Search Reports");
-        searchGrid.add(tweetBtn, 3, 1);
+        tweetBtn.setMaxWidth(Double.MAX_VALUE);
 
         TextField aboutText = new TextField();
         aboutText.setPromptText("Enter About");
@@ -996,7 +1007,12 @@ public class BigWindow {
         searchGrid.add(aboutText, 0, 2, 3, 1);
 
         Button aboutBtn = new Button("Search About");
-        searchGrid.add(aboutBtn, 3, 2);
+        aboutBtn.setMaxWidth(Double.MAX_VALUE);
+
+        VBox vbox1 = new VBox();
+        vbox1.setSpacing(10);
+        vbox1.getChildren().addAll(hashBtn, tweetBtn, aboutBtn);
+        searchGrid.add(vbox1, 3, 0, 1, 3);
 
         TextArea results = new TextArea();
         results.setWrapText(true);
@@ -1020,7 +1036,6 @@ public class BigWindow {
         table.setEditable(false);
         table.getSelectionModel().setCellSelectionEnabled(true);
         table.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        //TODO make nextTweetBtn do something
 
         ObservableList<Profile> data = FXCollections.observableArrayList();
 
@@ -1028,6 +1043,7 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
+                results.clear();
                 String about = aboutText.getText();
                 if (about.equals(lastSearchString) && lastSearchType.equals("about")){
                     lastSearchStartNumber = lastSearchStartNumber + 5;
@@ -1037,6 +1053,11 @@ public class BigWindow {
                     lastSearchType = "about";
                 }
                 ArrayList<ArrayList> profiles = db.searchProfileAbout(about, lastSearchStartNumber);
+                if (profiles.isEmpty()){
+                    lastSearchStartNumber = 0;
+                }
+                profiles = db.searchProfileAbout(about, lastSearchStartNumber);
+
                 data.clear();
                 System.out.println("Window createSearchTable nameBtn profiles: " + profiles);
                 for (ArrayList<String> profile : profiles) {
@@ -1053,6 +1074,7 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
+                data.clear();
                 String tweet = tweetText.getText();
                 if (tweet.equals(lastSearchString) && lastSearchType.equals("tweet")){
                     lastSearchStartNumber = lastSearchStartNumber + 100;
@@ -1062,6 +1084,10 @@ public class BigWindow {
                     lastSearchType = "tweet";
                 }
                 ArrayList<ArrayList> pastTweets = db.searchTweets(tweet, lastSearchStartNumber);
+                if (pastTweets.isEmpty()){
+                    lastSearchStartNumber = 0;
+                }
+                pastTweets = db.searchTweets(tweet, lastSearchStartNumber);
                 results.setText(createSearchTweetsResults(pastTweets));
             }
         });
@@ -1070,6 +1096,7 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
+                results.clear();
                 String hash = hashText.getText();
                 lastSearchString = hash;
                 lastSearchStartNumber = 0;
@@ -1090,6 +1117,7 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
+                results.clear();
                 String name = nameText.getText();
                 if (name.equals(lastSearchString) && lastSearchType.equals("name")){
                     lastSearchStartNumber = lastSearchStartNumber + 5;
@@ -1099,6 +1127,10 @@ public class BigWindow {
                     lastSearchType = "name";
                 }
                 ArrayList<ArrayList> profiles = db.searchProfileName(name, lastSearchStartNumber);
+                if (profiles.isEmpty()){
+                    lastSearchStartNumber = 0;
+                }
+                profiles = db.searchProfileAbout(name, lastSearchStartNumber);
                 data.clear();
                 System.out.println("Window createSearchTable nameBtn profiles: " + profiles);
                 for (ArrayList<String> profile : profiles) {
@@ -1191,8 +1223,15 @@ public class BigWindow {
                                         if (lastProfileTweetsName != null &&
                                                 lastProfileTweetsName.equals(person.getHash())){
                                             lastProfileTweetsNumber = lastProfileTweetsNumber + 100;
-                                            results.setText(createTweetsResults(person.getHash(), person.getName(),
-                                                    lastProfileTweetsNumber));
+                                            String reports = createTweetsResults(person.getHash(), person.getName(),
+                                                    lastProfileTweetsNumber);
+                                            if (reports.length() == 0){
+                                                lastProfileTweetsNumber = 0;
+                                                reports = createTweetsResults(person.getHash(), person.getName(),
+                                                        lastProfileTweetsNumber);
+                                            }
+                                            results.setText(reports);
+
 
                                         }else {
                                             lastProfileTweetsName = person.getHash();
@@ -1261,12 +1300,12 @@ public class BigWindow {
         followBtnCol.setCellFactory( cellFactory3 );
 
         table.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
-        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 49 ); // 50% width
+        hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 25 ); // 50% width
         nameCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
-        followCol.setMaxWidth( 1f * Integer.MAX_VALUE * 7 );
-        profileBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 8 );
-        tweetsBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 8 );
-        followBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 13 );
+        followCol.setMaxWidth( 1f * Integer.MAX_VALUE * 10 );
+        profileBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
+        tweetsBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
+        followBtnCol.setMaxWidth( 1f * Integer.MAX_VALUE * 20 );
 
         table.setItems( data );
         table.getColumns().addAll(hashCol, nameCol, followCol, profileBtnCol, tweetsBtnCol, followBtnCol);
@@ -1310,7 +1349,7 @@ public class BigWindow {
     private String createTweetsResults(String hash, String name, int startingNumber) {
         ArrayList<String> tweets = db.getPastTweetsResults(hash, startingNumber);
         if (tweets.isEmpty()){
-            return "EMPTY";
+            return "";
         }
         String results = "";
 
@@ -1356,51 +1395,27 @@ public class BigWindow {
         bottomRowConstraint.setPercentHeight(10);
         feedGrid.getRowConstraints().addAll(topRowConstraint, middleRowConstraint, bottomRowConstraint);
 
-        ColumnConstraints columnConstraint0 = new ColumnConstraints();
-        columnConstraint0.setHalignment(HPos.LEFT);
-        columnConstraint0.setFillWidth(true);
-        columnConstraint0.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint1 = new ColumnConstraints();
-        columnConstraint1.setHalignment(HPos.CENTER);
-        columnConstraint1.setFillWidth(true);
-        columnConstraint1.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint2 = new ColumnConstraints();
-        columnConstraint2.setHalignment(HPos.CENTER);
-        columnConstraint2.setFillWidth(true);
-        columnConstraint2.setHgrow(Priority.ALWAYS);
-
-        ColumnConstraints columnConstraint3 = new ColumnConstraints();
-        columnConstraint3.setHalignment(HPos.RIGHT);
-        columnConstraint3.setFillWidth(true);
-        columnConstraint3.setHgrow(Priority.ALWAYS);
-        feedGrid.getColumnConstraints().addAll(columnConstraint0, columnConstraint1,
-                columnConstraint2, columnConstraint3);
-
         feedArea = new TextArea();
         feedArea.setWrapText(true);
         feedArea.setEditable(false);
         feedArea.setPromptText("Feed");
         feedArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         feedArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        feedGrid.add(feedArea, 0, 0, 4, 1);
         feedArea.setText(createTweetsFeed());
         feedArea.setScrollTop(0);
-
+        feedGrid.add(feedArea, 0, 0);
 
         TextArea feedTweetArea = new TextArea();
         feedTweetArea.setWrapText(true);
         feedTweetArea.setPromptText("Report Here");
         feedTweetArea.setStyle("-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%); }");
         feedTweetArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        feedGrid.add(feedTweetArea, 0, 1, 4, 1);
+        feedGrid.add(feedTweetArea, 0, 1);
 
         Text actionTarget = new Text();
-        feedGrid.add(actionTarget, 2, 2);
 
         Button cyclePastTweetsBtn = new Button("Last 100");
-        feedGrid.add(cyclePastTweetsBtn, 0, 2);
+        cyclePastTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         cyclePastTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -1411,17 +1426,19 @@ public class BigWindow {
         });
 
         Button resetTweetsBtn = new Button("Reset");
-        feedGrid.add(resetTweetsBtn, 1, 2);
+        resetTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         resetTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent e) {
                 myLastFeedNumber = 0;
                 feedArea.setText(createTweetsFeed());
+                actionTarget.setText("");
             }
         });
 
         Button tweetBtn = new Button("Report");
+        tweetBtn.setMaxHeight(Double.MAX_VALUE);
         tweetBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -1431,7 +1448,6 @@ public class BigWindow {
                 if (success){
                     actionTarget.setFill(Color.BLACK);
                     actionTarget.setText("Report Sent");
-                    String nameToUse = whatNameToUse();
                     if (myLastTweetNumber == 0){
                         myTweetArea.setText(createMyTweets());
                     }
@@ -1447,7 +1463,17 @@ public class BigWindow {
                 feedTweetArea.clear();
             }
         });
-        feedGrid.add(tweetBtn, 3, 2);
+
+        HBox hbox = new HBox();
+        hbox.setPadding(new Insets(10, 10, 10, 10));
+        hbox.setSpacing(10);
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        hbox.setAlignment(Pos.CENTER_RIGHT);
+        hbox.getChildren().addAll(resetTweetsBtn, cyclePastTweetsBtn, spacer, actionTarget, tweetBtn);
+        feedGrid.add(hbox, 0, 2);
+        GridPane.setFillWidth(hbox, true);
+        GridPane.setHgrow(hbox, Priority.ALWAYS);
 
         tab.setContent(feedGrid);
         tabPane.getTabs().add(tab);
