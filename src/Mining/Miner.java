@@ -14,6 +14,7 @@ public class Miner implements Runnable {
     private SQLiteJDBC db;
     private volatile boolean wait;
     private boolean reset;
+    private boolean active;
     private volatile String username;
     private String pubKey;
     private ArrayList<String> incompleteHeader;
@@ -30,6 +31,7 @@ public class Miner implements Runnable {
         this.username = username;
         this.wait = false;
         this.reset = false;
+        this.active = true;
         setKey();
     }
 
@@ -59,7 +61,7 @@ public class Miner implements Runnable {
     }
 
     private void mineLoop(){
-        while (true){
+        while (active){
             makeHeaderToHash();
             if (wait){
                 try {
@@ -101,7 +103,8 @@ public class Miner implements Runnable {
                     nonce ++;
                 } catch (InterruptedException e) {
                     System.out.println("Miner sleep interrupted while mining");
-                    e.printStackTrace();
+                    active = false;
+                    reset = true;
                 }
             }
         }

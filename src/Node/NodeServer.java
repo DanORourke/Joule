@@ -56,7 +56,8 @@ public class NodeServer implements Runnable  {
     private void setListener(int listenPort){
         try {
             listener = new ServerSocket(listenPort);
-            listener.setSoTimeout(1000);
+            // trying to fix freezing issues, turn this off, not sure why I want it anyway
+            //listener.setSoTimeout(1000);
 
         } catch (BindException e) {
             System.out.println("SERVER JVM_Bind Exception");
@@ -88,6 +89,16 @@ public class NodeServer implements Runnable  {
             } catch (SocketTimeoutException e) {
             } catch (IOException e) {
                 e.printStackTrace();
+                // trying to fix freezing issues
+                try {
+                    System.out.println("NodeServer listener.close() Ip: " + myIp + " myPort: " + myPort +
+                            " myNetName: " + myNetName);
+                    listener.close();
+                    setListener(myPort);
+                } catch (IOException e2) {
+                    e2.printStackTrace();
+                    setListener(myPort);
+                }
             }
         }
         try {

@@ -46,7 +46,7 @@ public class SQLiteJDBC {
         pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
                 "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
-        seedTime = "1493593832000";
+        seedTime = "1493558407121";
         seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
@@ -853,7 +853,6 @@ public class SQLiteJDBC {
 
     public synchronized ArrayList<ArrayList> getSpendableTxo(String pubKeyHash, String txPerTweet,
                                                              ArrayList<String> miningInfo){
-        //TODO update this, make fewer calls
         int offset = 0;
         int totalSpendable = 0;
         int totalNeeded = Integer.valueOf(txPerTweet);
@@ -1519,6 +1518,28 @@ public class SQLiteJDBC {
         return sql;
     }
 
+    public synchronized String getCurrentHeaderHash(){
+        String currentHeaderHash = "";
+        Statement stmt = null;
+
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH FROM BLOCKCHAIN ORDER BY HEIGHT DESC LIMIT 1");
+            if (rs.isBeforeFirst()){
+                while (rs.next()){
+                    currentHeaderHash = rs.getString("HEADERHASH");
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        System.out.println("db.getCurrentHeaderHash currentHeaderHash: " + currentHeaderHash);
+        return currentHeaderHash;
+    }
+
     public synchronized ArrayList<String> getPastHeaderHashes(int height){
         ArrayList<String> pastHeaderHashes = new ArrayList<>();
         Statement stmt = null;
@@ -1529,8 +1550,8 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEIGHT BETWEEN " + lowerBound +
-                    " AND " + height + ";");
+            ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEIGHT BETWEEN "
+                    + lowerBound + " AND " + height + ";");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
                     pastHeaderHashes.add(String.valueOf(rs.getInt("HEIGHT")));
@@ -1542,6 +1563,7 @@ public class SQLiteJDBC {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        System.out.println("db.getPastHeaderHashes pastHeaderHashes: " + pastHeaderHashes);
         return pastHeaderHashes;
     }
 
@@ -1968,7 +1990,7 @@ public class SQLiteJDBC {
 
     public synchronized boolean changeUsername(String oldUsername, String newUsername){
         ArrayList<String> conflict = getUserInfo(newUsername);
-        if (!conflict.isEmpty()){
+        if (newUsername.length() == 0 || !conflict.isEmpty()){
             return false;
         }else {
             Statement stmt = null;
@@ -2001,7 +2023,7 @@ public class SQLiteJDBC {
     }
 
     public synchronized boolean changePassword(String username, String newPassword, String newPassword2){
-        if (!newPassword.equals(newPassword2)){
+        if (!newPassword.equals(newPassword2) || newPassword.length() == 0){
             return false;
         }
         ArrayList<String> newSaltPass = new MathStuff().createNewSaltPass(newPassword);
@@ -2290,10 +2312,11 @@ public class SQLiteJDBC {
         }
     }
 
-    public synchronized ArrayList<ArrayList> getMyOpenTx(String username){
+    public synchronized ArrayList<ArrayList> getMyOpenTx(String username, String currentHeaderHash){
         ArrayList<ArrayList> openList = new ArrayList<>();
         Statement stmt = null;
         try {
+            ArrayList<ArrayList> allOpen = new ArrayList<>();
             c.setAutoCommit(false);
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery( "SELECT OPENTXOTABLE.TXHASH, OPENTXOTABLE.COINNUMBER, " +
@@ -2305,11 +2328,21 @@ public class SQLiteJDBC {
                     ArrayList<String> openTx = new ArrayList<>();
                     openTx.addAll(Arrays.asList(rs.getString("TXHASH"), rs.getString("TYPE"),
                             rs.getString("COINNUMBER"), rs.getString("HEADERHASH")));
-                    openList.add(openTx);
+                    allOpen.add(openTx);
                 }
             }
+
             rs.close();
             stmt.close();
+            return allOpen;
+            // TODO find a way to make the below code faster, it is too slow right now, use chain column in db
+//            ArrayList<String> miningInfo = getMiningInfo();
+//            for (ArrayList<String> openTx: allOpen){
+//                //check if in active chain or not yet in a chain
+//                if (isTxAcceptable(openTx.get(0), miningInfo) || getHeaderHashOfTx(openTx.get(0)).get(0).equals("no")){
+//                    openList.add(openTx);
+//                }
+//            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

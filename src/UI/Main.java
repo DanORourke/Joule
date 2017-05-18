@@ -24,33 +24,40 @@ import java.util.concurrent.TimeUnit;
 public class Main extends Application{
     private Stage primaryStage;
     private static SQLiteJDBC db;
-    private static NodeBase nb;
+    private NodeBase nb;
     private Label myBlockHeightLabel;
     private Label blockHeightLabel;
     private Label talkerSizeLabel;
     private Label secondsLabel;
     private int loadingReps;
+    private String username;
 
     @Override
     public void start(Stage primaryStage2) {
         primaryStage = primaryStage2;
         String pathToImage = "Resources/Icon.png";
         primaryStage.getIcons().add(new Image(pathToImage));
+        primaryStage.setTitle("Joule");
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
             public void handle(WindowEvent t) {
-                nb.shutdown();
+                if (nb != null){
+                    nb.shutdown();
+                }
                 Platform.exit();
                 System.exit(0);
             }
         });
-        setCatchUpScene();
-        startScheduledExecutorService();
+        //setCatchUpScene();
+        setLoginScene();
+        primaryStage.centerOnScreen();
+        primaryStage.show();
     }
 
-    private void setCatchUpScene(){
+    public void setCatchUpScene(String username, NodeBase nb){
         //shows status as the blockchain is updated
-        primaryStage.setTitle("Joule");
+        this.username = username;
+        this.nb = nb;
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);
@@ -77,9 +84,8 @@ public class Main extends Application{
         catchUp.getStylesheets().add
                 (Main.class.getResource("skin.css").toExternalForm());
         primaryStage.setScene(catchUp);
-        primaryStage.centerOnScreen();
-        primaryStage.show();
         loadingReps = 0;
+        startScheduledExecutorService();
     }
 
     private void startScheduledExecutorService(){
@@ -104,7 +110,7 @@ public class Main extends Application{
                             Platform.runLater(new Runnable(){
                                 @Override
                                 public void run() {
-                                    setLoginScene();
+                                    changeScene();
                                 }
                             });
                         } else if(myBlockHeight != blockHeight || myBlockHeight == 0){
@@ -124,11 +130,10 @@ public class Main extends Application{
                             Platform.runLater(new Runnable(){
                                 @Override
                                 public void run() {
-                                    setLoginScene();
+                                    changeScene();
                                 }
                             });
                         }
-
                     }
                 },
                 1,
@@ -138,55 +143,24 @@ public class Main extends Application{
 
     public void setLoginScene(){
         //allow user to login
-        Scene login = new Login(this, db, nb).getScene();
+        Scene login = new Login(this, db).getScene();
         login.getStylesheets().add
                 (Main.class.getResource("skin.css").toExternalForm());
         primaryStage.setScene(login);
     }
 
-    public void changeScene(String username){
-        //change to big window scene after user logs in
+    public void changeScene(){
+        //change to big window scene after block chain catches up
         Scene bigWindow = new BigWindow(this, db, username, nb).getScene();
         bigWindow.getStylesheets().add
                 (Main.class.getResource("skin.css").toExternalForm());
         primaryStage.setScene(bigWindow);
+        primaryStage.centerOnScreen();
 
     }
 
     public static void main(String[] args) {
-        if (args.length == 0 || (args.length == 1 && args[0].equals("-outside"))) {
-            //runs as normal, only talking to outside networks
             db = new SQLiteJDBC();
-            nb = new NodeBase(db);
             launch();
-        } else if (args.length == 2 && args[1].equals("-outside")) {
-            //tells user valid arguments
-            System.out.println("Cannot name network 'outside'");
-            System.out.println("Invalid Arguments\n" +
-                    "-outside or without arguments will only talk to the outside world\n" +
-                    "-inside -argument will only talk on local network 'argument'\n" +
-                    "-both -argument will talk on the local network 'argument' and also to the outside world");
-        } else if (args.length == 2 && args[0].equals("-inside")) {
-            //runs in inside mode on the network passed as parameter
-            db = new SQLiteJDBC();
-            String one = args[0].substring(1);
-            String two = args[1].substring(1);
-            nb = new NodeBase(db, one, two);
-            launch();
-        } else if (args.length == 2 && args[0].equals("-both")) {
-            //this runs in inside/outside mode on the network passed as parameter
-            db = new SQLiteJDBC();
-            String one = args[0].substring(1);
-            String two = args[1].substring(1);
-            nb = new NodeBase(db, one, two);
-            launch();
-        } else {
-            //tells user acceptable parameters
-            System.out.println("Invalid Arguments\n" +
-                    "-outside or without arguments will only talk to the outside world\n" +
-                    "-inside -argument will only talk on local network 'argument'\n" +
-                    "-both -argument will talk on the local network 'argument' and also to the outside world");
-        }
     }
-
 }

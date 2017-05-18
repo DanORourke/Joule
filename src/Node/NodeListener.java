@@ -31,8 +31,6 @@ public class NodeListener extends Thread{
             e.printStackTrace();
         }
         listen();
-
-
     }
 
     public void removeTalker(){
@@ -68,6 +66,7 @@ public class NodeListener extends Thread{
                     getConnectedPort() + " e:" + e);
         } finally {
             try {
+                in.close();
                 socket.close();
             } catch (IOException e) {
                 System.out.println("Couldn't close a socket, what's going on?");

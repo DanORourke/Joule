@@ -10,7 +10,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -66,6 +65,7 @@ public class BigWindow {
         setMyTweetsTab();
         setReportersTab();
         setSearchTab();
+        setInfoTab();
         setProfileTab();
         setNetworkTab();
         setBankTab();
@@ -296,7 +296,9 @@ public class BigWindow {
     }
 
     private ObservableList<Tx> fillTxTable() {
-        ArrayList<ArrayList> myOpenTx = db.getMyOpenTx(username);
+
+        String currentHeaderHash = db.getCurrentHeaderHash();
+        ArrayList<ArrayList> myOpenTx = db.getMyOpenTx(username, currentHeaderHash);
         System.out.println("window getMyOpenTx myOpenTx: " + myOpenTx);
         ObservableList<Tx> txList = FXCollections.observableArrayList();
         for (ArrayList<String> tx : myOpenTx){
@@ -411,7 +413,7 @@ public class BigWindow {
             }
         });
 
-        Button resetTweetsBtn = new Button("Reset");
+        Button resetTweetsBtn = new Button("Refresh Tab");
         resetTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         resetTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -443,14 +445,13 @@ public class BigWindow {
                     myTweetTweetArea.clear();
                 }else {
                     actionTarget.setFill(Color.FIREBRICK);
-                    actionTarget.setText("ERROR. REPORT NOT SENT");
+                    actionTarget.setText("ERROR");
                 }
                 System.out.println("Window succes = " + success);
             }
         });
 
         HBox hbox = new HBox();
-        hbox.setPadding(new Insets(10, 10, 10, 10));
         hbox.setSpacing(10);
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -485,8 +486,169 @@ public class BigWindow {
         return nameToUse + ":\n\n" + feed;
     }
 
+    private void setInfoTab(){
+        Tab tab = new Tab();
+        tab.setText("Info");
+        tab.setClosable(false);
+
+        GridPane infoGrid = new GridPane();
+        infoGrid.setAlignment(Pos.CENTER);
+        infoGrid.setHgap(10);
+        infoGrid.setVgap(10);
+        infoGrid.setPadding(new Insets(25, 25, 25, 25));
+
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setHgrow(Priority.NEVER);
+
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.NEVER);
+
+        infoGrid.getColumnConstraints().addAll(col0, col1, col2);
+
+        Button refreshBtn = new Button("Refresh Tab");
+        refreshBtn.setMaxHeight(Double.MAX_VALUE);
+        refreshBtn.setAlignment(Pos.TOP_LEFT);
+        infoGrid.add(refreshBtn, 0, 0);
+
+        Label usernameLabel = new Label();
+        usernameLabel.setText("Username: " + username);
+        usernameLabel.setMaxHeight(Double.MAX_VALUE);
+        usernameLabel.setAlignment(Pos.CENTER_LEFT);
+        infoGrid.add(usernameLabel, 0, 1);
+
+        PasswordField pass1 = new PasswordField();
+        pass1.setMaxHeight(Double.MAX_VALUE);
+        pass1.setPromptText("New Password");
+        pass1.setAlignment(Pos.BOTTOM_LEFT);
+        infoGrid.add(pass1, 0, 2);
+
+        Button signOutBtn = new Button("Sign Out");
+        signOutBtn.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        signOutBtn.setAlignment(Pos.TOP_CENTER);
+        infoGrid.add(signOutBtn, 2, 0);
+
+        TextField newUsernameField = new TextField();
+        newUsernameField.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        newUsernameField.setPromptText("New Username");
+        newUsernameField.setAlignment(Pos.CENTER_LEFT);
+        infoGrid.add(newUsernameField, 1, 1);
+
+        PasswordField pass2 = new PasswordField();
+        pass2.setMaxHeight(Double.MAX_VALUE);
+        pass2.setPromptText("New Password");
+        pass2.setAlignment(Pos.BOTTOM_LEFT);
+        infoGrid.add(pass2, 1, 2);
+
+        Text actionTarget = new Text();
+        infoGrid.add(actionTarget, 1, 0);
+
+        Button changeUsernameBtn = new Button("Change username");
+        changeUsernameBtn.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        changeUsernameBtn.setAlignment(Pos.CENTER_LEFT);
+        infoGrid.add(changeUsernameBtn, 2, 1);
+
+        Button changePasswordBtn = new Button("Change Password");
+        changePasswordBtn.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        changePasswordBtn.setAlignment(Pos.BOTTOM_LEFT);
+        infoGrid.add(changePasswordBtn, 2, 2);
+
+        Label pubKeyHashLabel = new Label("Public Key Hash:");
+        infoGrid.add(pubKeyHashLabel, 0, 3);
+
+        Label pubKeyLabel = new Label("Public Key:");
+        infoGrid.add(pubKeyLabel, 0, 4);
+
+        Label privKeyLabel = new Label("Private Key:");
+        infoGrid.add(privKeyLabel, 0, 5);
+
+        TextArea pubKeyHashArea = new TextArea();
+        pubKeyHashArea.setEditable(false);
+        pubKeyHashArea.setWrapText(true);
+        pubKeyHashArea.setText(myProfile.getHash());
+        infoGrid.add(pubKeyHashArea, 1, 3, 2, 1);
+
+        ArrayList<String> keys = db.getUserKeys(username);
+
+        TextArea pubKeyArea = new TextArea();
+        pubKeyArea.setEditable(false);
+        pubKeyArea.setWrapText(true);
+        pubKeyArea.setText(keys.get(0));
+        infoGrid.add(pubKeyArea, 1, 4, 2, 1);
+
+        TextArea privKeyArea = new TextArea();
+        privKeyArea.setEditable(false);
+        privKeyArea.setWrapText(true);
+        privKeyArea.setText(keys.get(1));
+        infoGrid.add(privKeyArea, 1, 5, 2, 1);
+
+        signOutBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                nb.signOut();
+                nb.shutdown();
+                stageClass.setLoginScene();
+            }
+        });
+
+        changeUsernameBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                String newName = newUsernameField.getText();
+                if (db.changeUsername(username, newName)){
+                    actionTarget.setFill(Color.BLACK);
+                    actionTarget.setText("Username changed");
+                    newUsernameField.setText("");
+                    changeUsername(newName);
+                    usernameLabel.setText("Username: " + username);
+
+                }else {
+                    actionTarget.setFill(Color.FIREBRICK);
+                    actionTarget.setText("ERROR");
+                    newUsernameField.setText("");
+                }
+            }
+        });
+
+        changePasswordBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                if (db.changePassword(username, pass1.getText(), pass2.getText())){
+                    actionTarget.setFill(Color.BLACK);
+                    actionTarget.setText("Password changed");
+                    pass1.clear();
+                    pass2.clear();
+
+                }else {
+                    actionTarget.setFill(Color.FIREBRICK);
+                    actionTarget.setText("Error");
+                    pass1.clear();
+                    pass2.clear();                }
+            }
+        });
+
+        refreshBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                actionTarget.setText("");
+                newUsernameField.setText("");
+                pass1.clear();
+                pass2.clear();
+                usernameLabel.setText("Username: " + username);
+            }
+        });
+
+        tab.setContent(infoGrid);
+        tabPane.getTabs().add(tab);
+    }
+
     private void setProfileTab(){
-        //TODO include user info as well?
         Tab tab = new Tab();
         tab.setText("Profile");
         tab.setClosable(false);
@@ -497,158 +659,58 @@ public class BigWindow {
         profileGrid.setVgap(10);
         profileGrid.setPadding(new Insets(25, 25, 25, 25));
 
+        RowConstraints row0 = new RowConstraints();
+        row0.setVgrow(Priority.NEVER);
 
+        RowConstraints row1 = new RowConstraints();
+        row1.setVgrow(Priority.NEVER);
 
-        RowConstraints rowConstraint0 = new RowConstraints();
-        rowConstraint0.setPercentHeight(10);
+        RowConstraints row2 = new RowConstraints();
+        row2.setVgrow(Priority.NEVER);
 
-        RowConstraints rowConstraint1 = new RowConstraints();
-        rowConstraint1.setPercentHeight(10);
+        RowConstraints row3 = new RowConstraints();
+        row3.setVgrow(Priority.ALWAYS);
+        profileGrid.getRowConstraints().addAll(row0, row1, row2, row3);
 
-        RowConstraints rowConstraint2 = new RowConstraints();
-        rowConstraint2.setPercentHeight(10);
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setHgrow(Priority.NEVER);
 
-        RowConstraints rowConstraint3 = new RowConstraints();
-        rowConstraint3.setPercentHeight(10);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
 
-        RowConstraints rowConstraint4 = new RowConstraints();
-        rowConstraint4.setPercentHeight(50);
-        rowConstraint4.setValignment(VPos.TOP);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(25);
+        profileGrid.getColumnConstraints().addAll(col0, col1, col2);
 
-        RowConstraints rowConstraint5 = new RowConstraints();
-        rowConstraint5.setPercentHeight(10);
-        profileGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2, rowConstraint3,
-                rowConstraint4, rowConstraint5);
+        Button refreshBtn = new Button("Refresh Tab");
+        refreshBtn.setMaxHeight(Double.MAX_VALUE);
+        profileGrid.add(refreshBtn, 0, 0);
 
-        ColumnConstraints columnConstraint0 = new ColumnConstraints();
-        columnConstraint0.setPercentWidth(20);
+        Text actionTarget = new Text();
+        profileGrid.add(actionTarget, 1, 0);
+        GridPane.setHalignment(actionTarget, HPos.RIGHT);
 
-        ColumnConstraints columnConstraint1 = new ColumnConstraints();
-        columnConstraint1.setPercentWidth(20);
+        Button updateProfileBtn = new Button("Update Profile");
+        updateProfileBtn.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        profileGrid.add(updateProfileBtn, 2, 0);
 
-        ColumnConstraints columnConstraint2 = new ColumnConstraints();
-        columnConstraint2.setPercentWidth(48);
-
-        ColumnConstraints columnConstraint3 = new ColumnConstraints();
-        columnConstraint3.setPercentWidth(12);
-        profileGrid.getColumnConstraints().addAll(columnConstraint0, columnConstraint1,
-                columnConstraint2, columnConstraint3);
-
-        final Text actionTarget = new Text();
-        profileGrid.add(actionTarget, 2, 3, 2, 1);
-
-        Label pubKeyHashLabel = new Label("Public Key\nHash");
-        profileGrid.add(pubKeyHashLabel, 3, 0);
-
-        Label pubKeyLabel = new Label("Public Key");
-        profileGrid.add(pubKeyLabel, 3, 1);
-
-        Label privKeyLabel = new Label("Private\nKey");
-        profileGrid.add(privKeyLabel, 3, 2);
-
-        Label nameLabel = new Label("Public Name");
-        profileGrid.add(nameLabel, 1, 3);
-
-        Label aboutLabel = new Label("About");
-        profileGrid.add(aboutLabel, 3, 4);
-
-        Button signOutBtn = new Button("Sign Out");
-        profileGrid.add(signOutBtn, 0, 0);
-
-        signOutBtn.setOnAction(new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent e) {
-                nb.signOut();
-                stageClass.setLoginScene();
-            }
-        });
-
-        TextField usernameField = new TextField();
-        usernameField.setEditable(true);
-        usernameField.setText(username);
-        profileGrid.add(usernameField, 0, 1);
-
-        PasswordField pwBox = new PasswordField();
-        profileGrid.add(pwBox, 1, 0);
-
-        PasswordField pwBox2 = new PasswordField();
-        profileGrid.add(pwBox2, 1, 1);
-
-        Button nameBtn = new Button("Change\nUsername");
-        profileGrid.add(nameBtn, 0, 2);
-
-        nameBtn.setOnAction(new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent e) {
-                if (db.changeUsername(username, usernameField.getText())){
-                    actionTarget.setFill(Color.BLACK);
-                    actionTarget.setText("Username changed");
-                    changeUsername(usernameField.getText());
-
-                }else {
-                    actionTarget.setFill(Color.FIREBRICK);
-                    actionTarget.setText("No Good.  Try Again");
-                    usernameField.setText(username);
-                }
-            }
-        });
-
-        Button pwdBtn = new Button("Change\nPassword");
-        profileGrid.add(pwdBtn, 1, 2);
-
-        pwdBtn.setOnAction(new EventHandler<ActionEvent>() {
-
-            @Override
-            public void handle(ActionEvent e) {
-                if (db.changePassword(username, pwBox.getText(), pwBox2.getText())){
-                    actionTarget.setFill(Color.BLACK);
-                    actionTarget.setText("Password changed");
-                    pwBox.clear();
-                    pwBox2.clear();
-
-                }else {
-                    actionTarget.setFill(Color.FIREBRICK);
-                    actionTarget.setText("Error.  Try Again");
-                    pwBox.clear();
-                    pwBox2.clear();                }
-            }
-        });
-
-        TextArea pubKeyHashArea = new TextArea();
-        pubKeyHashArea.setEditable(false);
-        pubKeyHashArea.setWrapText(true);
-        pubKeyHashArea.setText(myProfile.getHash());
-        profileGrid.add(pubKeyHashArea, 2, 0);
-
-        ArrayList<String> keys = db.getUserKeys(username);
-
-        TextArea pubKeyArea = new TextArea();
-        pubKeyArea.setEditable(false);
-        pubKeyArea.setWrapText(false);
-        pubKeyArea.setText(keys.get(0));
-        profileGrid.add(pubKeyArea, 2, 1);
-
-        TextArea privKeyArea = new TextArea();
-        privKeyArea.setEditable(false);
-        privKeyArea.setWrapText(false);
-        privKeyArea.setText(keys.get(1));
-        profileGrid.add(privKeyArea, 2, 2);
+        Label nameLabel = new Label("Name: " + myProfile.getName());
+        profileGrid.add(nameLabel, 0, 1, 2, 1);
 
         TextField nameField = new TextField();
-        nameField.setEditable(true);
-        nameField.setText(myProfile.getName());
-        profileGrid.add(nameField, 0, 3);
+        nameField.setPromptText("New Name");
+        profileGrid.add(nameField, 2, 1);
+
+        Label aboutLabel = new Label("About: (Editable, update profile to lock in changes)");
+        profileGrid.add(aboutLabel, 0, 2, 3, 1);
 
         TextArea aboutArea = new TextArea();
+        aboutArea.setPromptText("About");
         aboutArea.setEditable(true);
         aboutArea.setWrapText(true);
-        aboutArea.setText(createMyProfileAbout(myProfile.getAbout()));
-        profileGrid.add(aboutArea, 0, 4, 3, 2);
-
-        Button updateProfileBtn = new Button("Update\nProfile");
-        profileGrid.add(updateProfileBtn, 3, 5);
+        aboutArea.setText(myProfile.getAbout());
+        aboutArea.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        profileGrid.add(aboutArea, 0, 3, 3, 1);
 
         updateProfileBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -656,17 +718,34 @@ public class BigWindow {
             public void handle(ActionEvent e) {
                 String newName = nameField.getText();
                 String newAbout = aboutArea.getText();
-                String profileTweet = convertProfile(newName, newAbout);
-                boolean success = nb.updateMyProfile(profileTweet);
-                if (success){
-                    actionTarget.setFill(Color.BLACK);
-                    actionTarget.setText("Update Sent");
+                if (newName.length() != 0){
+                    String profileTweet = convertProfile(newName, newAbout);
+                    boolean success = nb.updateMyProfile(profileTweet);
+                    if (success){
+                        actionTarget.setFill(Color.BLACK);
+                        actionTarget.setText("Update Sent");
+                        createMyProfile();
+                        nameLabel.setText("Name: " + myProfile.getName());
+                    }else {
+                        actionTarget.setFill(Color.FIREBRICK);
+                        actionTarget.setText("ERROR");
+                    }
                     createMyProfile();
                 }else {
                     actionTarget.setFill(Color.FIREBRICK);
-                    actionTarget.setText("ERROR. Update NOT SENT");
+                    actionTarget.setText("ERROR");
                 }
-                createMyProfile();
+            }
+        });
+
+        refreshBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                actionTarget.setText("");
+                nameField.setText("");
+                nameLabel.setText("Name: " + myProfile.getName());
+                aboutArea.setText(myProfile.getAbout());
             }
         });
 
@@ -695,25 +774,22 @@ public class BigWindow {
         reporterGrid.setPadding(new Insets(25, 25, 25, 25));
 
         RowConstraints rowConstraint0 = new RowConstraints();
-        rowConstraint0.setFillHeight(true);
-        rowConstraint0.setPercentHeight(5);
+        rowConstraint0.setVgrow(Priority.NEVER);
 
         RowConstraints rowConstraint1 = new RowConstraints();
-        rowConstraint1.setFillHeight(false);
         rowConstraint1.setPercentHeight(40);
 
         RowConstraints rowConstraint2 = new RowConstraints();
-        rowConstraint2.setFillHeight(true);
-        rowConstraint2.setPercentHeight(55);
+        rowConstraint2.setVgrow(Priority.ALWAYS);
 
         reporterGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2);
 
         ColumnConstraints columnConstraint0 = new ColumnConstraints();
-        columnConstraint0.setPercentWidth(100);
+        columnConstraint0.setHgrow(Priority.ALWAYS);
         reporterGrid.getColumnConstraints().addAll(columnConstraint0);
 
 
-        Button resetBtn = new Button("Reset Tab");
+        Button resetBtn = new Button("Refresh Tab");
         reporterGrid.add(resetBtn, 0, 0);
 
         TextArea results = new TextArea();
@@ -794,6 +870,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -852,6 +929,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -898,6 +976,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -939,24 +1018,19 @@ public class BigWindow {
         searchGrid.setPadding(new Insets(25, 25, 25, 25));
 
         RowConstraints rowConstraint0 = new RowConstraints();
-        rowConstraint0.setFillHeight(true);
-        rowConstraint0.setPercentHeight(5);
+        rowConstraint0.setVgrow(Priority.NEVER);
 
         RowConstraints rowConstraint1 = new RowConstraints();
-        rowConstraint1.setFillHeight(false);
-        rowConstraint1.setPercentHeight(5);
+        rowConstraint1.setVgrow(Priority.NEVER);
 
         RowConstraints rowConstraint2 = new RowConstraints();
-        rowConstraint2.setFillHeight(true);
-        rowConstraint2.setPercentHeight(5);
+        rowConstraint2.setVgrow(Priority.NEVER);
 
         RowConstraints rowConstraint3 = new RowConstraints();
-        rowConstraint3.setFillHeight(true);
         rowConstraint3.setPercentHeight(30);
 
         RowConstraints rowConstraint4 = new RowConstraints();
-        rowConstraint4.setFillHeight(true);
-        rowConstraint4.setPercentHeight(55);
+        rowConstraint4.setVgrow(Priority.ALWAYS);
 
         searchGrid.getRowConstraints().addAll(rowConstraint0, rowConstraint1, rowConstraint2,
                 rowConstraint3, rowConstraint4);
@@ -1188,6 +1262,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -1247,6 +1322,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -1293,6 +1369,7 @@ public class BigWindow {
                                 }
                             }
                         };
+                        cell.setAlignment(Pos.CENTER);
                         return cell;
                     }
                 };
@@ -1363,12 +1440,7 @@ public class BigWindow {
     }
 
     private String createProfileResults(String name, String about, String hash) {
-        return "Hash: " + hash + "\nName: " + name + "\nAbout: " + createMyProfileAbout(about);
-    }
-
-    private String createMyProfileAbout(String about){
-        //TODO update for fancy about
-        return about;
+        return "Hash: " + hash + "\nName: " + name + "\nAbout: " + about;
     }
 
     private void setFeedTab(){
@@ -1425,7 +1497,7 @@ public class BigWindow {
             }
         });
 
-        Button resetTweetsBtn = new Button("Reset");
+        Button resetTweetsBtn = new Button("Refresh Tab");
         resetTweetsBtn.setMaxHeight(Double.MAX_VALUE);
         resetTweetsBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -1457,7 +1529,7 @@ public class BigWindow {
                     feedTweetArea.clear();
                 }else {
                     actionTarget.setFill(Color.FIREBRICK);
-                    actionTarget.setText("ERROR. REPORT NOT SENT");
+                    actionTarget.setText("ERROR");
                 }
                 System.out.println("Window succes = " + success);
                 feedTweetArea.clear();
@@ -1465,7 +1537,6 @@ public class BigWindow {
         });
 
         HBox hbox = new HBox();
-        hbox.setPadding(new Insets(10, 10, 10, 10));
         hbox.setSpacing(10);
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);

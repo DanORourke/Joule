@@ -452,6 +452,7 @@ public class NodeTalker {
         stop = true;
         listener.removeTalker();
         listener.setStop(true);
+        out.close();
     }
 
     private void checkIfMoreNeeded(String otherHash){

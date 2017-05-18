@@ -8,10 +8,7 @@ import UI.BigWindow;
 import UI.Friend;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -39,6 +36,7 @@ public class NodeBase {
     private Miner miner;
     private NodeServer outsideServer;
     private NodeServer insideServer;
+    //private long oldTime;
 
     public NodeBase(SQLiteJDBC db){
         this(db, "outside", null);
@@ -60,12 +58,15 @@ public class NodeBase {
         //start listening for others
         startNewServer(networkType);
         //setup periodic calling of friends
-        scheduleNetworkCheck();
+        scheduleNetworkCheck(networkType);
     }
 
-    private void scheduleNetworkCheck(){
+    private void scheduleNetworkCheck(String networkType){
         //call others periodically, start quickly if first time and callEnoughFriends only has the seed network
         int initialDelay = ((db.getFirstTime()) ? 5 : 60);
+        //reset server every so often, it has been connecting without responding, fix didn't work
+//        Date date = new Date();
+//        oldTime = date.getTime();
 
         ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(1);
@@ -74,6 +75,11 @@ public class NodeBase {
                 scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                       public void run() {
                                                           callEnoughFriends();
+//                                                          long newTime = date.getTime();
+//                                                          if ((newTime - oldTime) > 60 * 1000){
+//                                                              newServer(networkType);
+//                                                              resetOldTime(newTime);
+//                                                          }
                                                       }
                                                   },
                         initialDelay, 60,
@@ -88,6 +94,10 @@ public class NodeBase {
             e.printStackTrace();
         }
     }
+
+//    private void resetOldTime(long newTime){
+//        oldTime = newTime;
+//    }
 
     public void startNewServer(String whichOne){
         //listen for others who may call you
@@ -711,8 +721,8 @@ public class NodeBase {
         callEnoughFriends();
     }
 
-    public ArrayList<ArrayList> getNetFriends(String networkTypeAsk){
-        ArrayList<ArrayList> friends = new ArrayList<>();
+    public ArrayList<ArrayList<String>> getNetFriends(String networkTypeAsk){
+        ArrayList<ArrayList<String>> friends = new ArrayList<>();
         ArrayList<NodeTalker> askTalkers = (networkTypeAsk.equals("outside") ? outsideTalkers : insideTalkers);
         System.out.println("nb getNetFriends talkers: " + askTalkers);
         for (NodeTalker talker : askTalkers){

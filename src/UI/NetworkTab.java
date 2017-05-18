@@ -93,7 +93,7 @@ public class NetworkTab extends Tab {
         ipBox.getChildren().addAll(ipField0, ipField1, ipField2, ipField3);
         networkGrid.add(ipBox, 0, 2, 2, 1);
 
-        Button changeIp = new Button("Change My IP");
+        Button changeIp = new Button("Change IP");
         changeIp.setMaxWidth(Double.MAX_VALUE);
         networkGrid.add(changeIp, 2, 2);
         changeIp.setOnAction(new EventHandler<ActionEvent>() {
@@ -127,7 +127,7 @@ public class NetworkTab extends Tab {
         portField.setPromptText("Port");
         portField.setMaxWidth(Double.MAX_VALUE);
 
-        Button changePortBtn = new Button("Change My Port");
+        Button changePortBtn = new Button("Change Port");
         changePortBtn.setMaxWidth(Double.MAX_VALUE);
         changePortBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -158,7 +158,7 @@ public class NetworkTab extends Tab {
         portBox.getChildren().addAll(portField, netNameField);
         networkGrid.add(portBox, 0, 3);
 
-        Button changeNetNameBtn = new Button("Change My NetName");
+        Button changeNetNameBtn = new Button("Change NetName");
         changeNetNameBtn.setMaxWidth(Double.MAX_VALUE);
         changeNetNameBtn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -181,7 +181,7 @@ public class NetworkTab extends Tab {
             }
         });
 
-        Button updateTabBtn = new Button("Update Tab");
+        Button updateTabBtn = new Button("Refresh Tab");
         updateTabBtn.setMaxWidth(Double.MAX_VALUE);
         networkGrid.add(updateTabBtn, 2, 1);
 
@@ -265,10 +265,10 @@ public class NetworkTab extends Tab {
         ArrayList<String> ipPort = db.getIpPort(username, networkName);
         String dbText;
         if (ipPort.size() == 3){
-            dbText = "DB Ip: " + ipPort.get(0) + " Port: " + ipPort.get(1) +
+            dbText = "DB IP: " + ipPort.get(0) + " Port: " + ipPort.get(1) +
             " NetName: " + ipPort.get(2);
         }else{
-            dbText = "DB Ip: NA Port: 0 NetName: NA";
+            dbText = "DB IP: NA Port: 0 NetName: NA";
         }
         dbLabel.setText(dbText);
 
@@ -367,7 +367,7 @@ public class NetworkTab extends Tab {
     }
 
     private ObservableList<Friend> fillNetworkTable() {
-        ArrayList<ArrayList> friends = nb.getNetFriends(networkName);
+        ArrayList<ArrayList<String>> friends = nb.getNetFriends(networkName);
         System.out.println("window fillNetTable friends: " + friends);
         ObservableList<Friend> friendList = FXCollections.observableArrayList();
         for (ArrayList<String> friend : friends){
