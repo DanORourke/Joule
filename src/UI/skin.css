@@ -1,0 +1,46 @@
+.root {
+     -fx-background-image: url("background.jpg");
+}
+
+.label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+    -fx-effect: dropshadow( gaussian , rgba(255,255,255,0.5) , 0,0,0,1 );
+}
+
+.button {
+    -fx-text-fill: white;
+    -fx-font-family: "Arial Narrow";
+    -fx-font-weight: bold;
+    -fx-background-color: linear-gradient(#1d0633, #350266);
+    -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(#350266, #1d0633);
+}
+
+.tab-pane *.tab-header-area *.tab-header-background {
+     -fx-background-image: url("background.jpg");
+}
+
+.tab {
+  -fx-font-family: Arial;
+  -fx-font-size: 13;
+  -fx-background-image: url("background.jpg");
+  -fx-focus-color: transparent;
+
+}
+
+.tab:selected {
+  -fx-background-image: url("background.jpg");
+  -fx-focus-color: #1d0633;
+}
+
+.text-input {
+    -fx-prompt-text-fill: derive(-fx-control-inner-background,-30%);
+}
+.text-input:focused {
+    -fx-prompt-text-fill: derive(-fx-control-inner-background,-30%);
+}
