@@ -1,7 +1,9 @@
 package ReadWrite;
 
 import DB.SQLiteJDBC;
-
+import Structures.JouleBase;
+import Structures.Tx;
+import Structures.Txo;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +41,7 @@ public class Construct {
     }
 
     private String calculateTarget(ArrayList<String> blockInfo, int height){
+        //TODO maybe put in mathstuff??
         if ((height%100) != 0){
             System.out.println("Construct calc target mod not 100");
             return blockInfo.get(2);
@@ -116,6 +119,14 @@ public class Construct {
         txoInstance.addAll(Arrays.asList(minerTotal, "0", pubKey));
         txo.add(txoInstance);
         fullTweet.add(txo);
+
+
+        //TODO new version with structures, simpler to understand
+//        //create the joulebase tx
+//        JouleBase base = new JouleBase(time);
+//        //add the txo to the tx
+//        base.addTxo(Integer.valueOf(numberToMinerTotal) + getMinerReward(), 0, pubKey);
+
 
         return fullTweet;
     }

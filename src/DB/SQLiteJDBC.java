@@ -29,7 +29,7 @@ public class SQLiteJDBC {
             System.out.println("Product name: " + dm.getDatabaseProductName());
             System.out.println("Product version: " + dm.getDatabaseProductVersion());
         } catch (Exception e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
+            e.printStackTrace();
             System.exit(0);
         }
         System.out.println("Opened database successfully");
@@ -54,10 +54,14 @@ public class SQLiteJDBC {
             ResultSet rs = stmt.executeQuery( "SELECT name FROM sqlite_master " +
                     "WHERE type='table' ORDER BY name;" );
             if (rs.isBeforeFirst() ) {
+                rs.close();
+                stmt.close();
                 System.out.println("Has data");
                 firstTime = false;
             }
-            if (!rs.isBeforeFirst() ) {
+            else {
+                rs.close();
+                stmt.close();
                 System.out.println("No data");
                 firstTime = true;
                 // set up db
@@ -65,11 +69,9 @@ public class SQLiteJDBC {
                 //turn on to give server access to first block
                 //addSeedUsers();
             }
-            rs.close();
-            stmt.close();
 
         }catch (Exception e){
-            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            e.printStackTrace();
         }
     }
 
@@ -342,7 +344,7 @@ public class SQLiteJDBC {
             c.commit();
             System.out.println("Seed node added");
         }catch (Exception e){
-            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
+            e.printStackTrace();
         }
     }
 
@@ -822,7 +824,7 @@ public class SQLiteJDBC {
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
-            System.out.println("Profile added or ignored");
+            System.out.println("ProfileReport added or ignored");
         }catch (Exception e){
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
         }
@@ -975,6 +977,9 @@ public class SQLiteJDBC {
 
     private synchronized boolean inSameChain(String firstHeader, String firstHeightString,
                                 String secondHeader, String secondHeightString){
+        //TODO think about just checking chain numbers first, then not bothering with this thing if passes
+        System.out.println("db.inSameChain firstHeader: " + firstHeader + " firstHeightString: " + firstHeightString +
+                " secondHeader: " + secondHeader + " SecondHeightString:" + secondHeightString);
         int firstHeight = Integer.valueOf(firstHeightString);
         int secondHeight = Integer.valueOf(secondHeightString);
         int difference = secondHeight - firstHeight;
@@ -988,42 +993,67 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            if (difference < 10){
-                ResultSet rs = stmt.executeQuery(constructInSameChainSql(secondHeader, difference));
-                if (rs.isBeforeFirst()){
-                    String chainHash = rs.getString("PREVIOUSHASH");
-                    System.out.println("inSameChain firstHeader: " + firstHeader + " chainHash: " + chainHash);
-                    rs.close();
-                    stmt.close();
-                    return firstHeader.equals(chainHash);
-                }
-                rs.close();
-                stmt.close();
-                System.out.println("db.inSameChain rs empty");
-            }else if (difference >= 10) {
-                ArrayList<String> sqlList = constructInSameChainSqlMore(secondHeader, difference);
-                stmt = c.createStatement();
-                stmt.executeUpdate(sqlList.get(0));
-                stmt.close();
-                c.commit();
-                Statement stmt2 = c.createStatement();
-                ResultSet rs = stmt2.executeQuery(sqlList.get(1));
-                String chainHash = rs.getString("PREVIOUSHASH");
-                rs.close();
-                stmt2.close();
-                //This should close the temp tables without risk of having no c when another thread calls
-                Connection c2 = DriverManager.getConnection("jdbc:sqlite:vault.db");
-                c2.setAutoCommit(false);
-                Connection c3 = c;
-                c = c2;
-                c3.close();
-                return firstHeader.equals(chainHash);
-            }
+            ResultSet rs = stmt.executeQuery(constructInSameChainSql3(secondHeader, firstHeader, firstHeight));
+            boolean exists = rs.isBeforeFirst();
+            rs.close();
+            stmt.close();
+            return exists;
+//            if (difference < 10){
+//                ResultSet rs = stmt.executeQuery(constructInSameChainSql(secondHeader, difference));
+//                if (rs.isBeforeFirst()){
+//                    String chainHash = rs.getString("PREVIOUSHASH");
+//                    System.out.println("inSameChain firstHeader: " + firstHeader + " chainHash: " + chainHash);
+//                    rs.close();
+//                    stmt.close();
+//                    // this is causing chaintable to lock for some reason, reconnecting in hopes of fixing it?
+//                    Connection c2 = DriverManager.getConnection("jdbc:sqlite:vault.db");
+//                    c2.setAutoCommit(false);
+//                    Connection c3 = c;
+//                    c = c2;
+//                    c3.close();
+//                    return firstHeader.equals(chainHash);
+//                }
+//                rs.close();
+//                stmt.close();
+//                System.out.println("db.inSameChain rs empty");
+//            }else {
+//                ArrayList<String> sqlList = constructInSameChainSqlMore(secondHeader, difference);
+//                stmt = c.createStatement();
+//                stmt.executeUpdate(sqlList.get(0));
+//                stmt.close();
+//                c.commit();
+//                Statement stmt2 = c.createStatement();
+//                ResultSet rs = stmt2.executeQuery(sqlList.get(1));
+//                String chainHash = rs.getString("PREVIOUSHASH");
+//                rs.close();
+//                stmt2.close();
+//                //This should close the temp tables without risk of having no c when another thread calls
+//                Connection c2 = DriverManager.getConnection("jdbc:sqlite:vault.db");
+//                c2.setAutoCommit(false);
+//                Connection c3 = c;
+//                c = c2;
+//                c3.close();
+//                return firstHeader.equals(chainHash);
+//            }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private synchronized String constructInSameChainSql3(String higherHeaderHash, String lowerHeaderHash,
+                                                         int lowerHeight){
+        String sql = "WITH RECURSIVE " +
+                "same_chain(HEADERHASH) AS (" +
+                "VALUES('" + higherHeaderHash + "') " +
+                "UNION " +
+                "SELECT BLOCKCHAIN.PREVIOUSHASH FROM BLOCKCHAIN, same_chain " +
+                "WHERE BLOCKCHAIN.HEADERHASH = same_chain.HEADERHASH " +
+                "AND BLOCKCHAIN.HEIGHT >= " + lowerHeight + ") " +
+                "SELECT HEADERHASH FROM same_chain " +
+                "WHERE HEADERHASH = '" + lowerHeaderHash + "'; ";
+        return sql;
     }
 
     private synchronized ArrayList<String> constructInSameChainSqlMore(String headerHash, int difference){
@@ -1072,7 +1102,7 @@ public class SQLiteJDBC {
             sql = sql + ")";
             i++;
         }
-        sql = sql + ";";
+        sql = sql + "; ";
         System.out.println("db.constructInSameChainSql sql: " + sql);
         return sql;
     }
@@ -1260,6 +1290,7 @@ public class SQLiteJDBC {
     }
 
     public synchronized boolean addFullBlock(ArrayList<ArrayList> fullBlock){
+        //TODO add boolean so add header doesn't redo the chain every time when catching up, slows things down
         System.out.println("db.addFullBlock fullBlock: " + fullBlock);
         ArrayList<String> header = fullBlock.get(0);
         boolean added = addBlockHeader(header);
@@ -1366,7 +1397,237 @@ public class SQLiteJDBC {
         }catch (Exception e){
             e.printStackTrace();
         }
+        if (entered == 1){
+            //done for now: speed this up, it is still slow
+            updateChainNumbers();
+        }
         return (entered == 1);
+    }
+
+    private synchronized void updateChainNumbers(){
+        resetChain3();
+        resetChainLoop(getHighestHeaders());
+    }
+
+    private synchronized void resetChain3(){
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+
+            String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '3';";
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.commit();
+            System.out.println("Chain updated");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized ArrayList<String> getHighestHeaders(){
+        ArrayList<String> info = new ArrayList<>();
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+            c.setAutoCommit(false);
+            ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEIGHT = " +
+                    "(SELECT MAX(HEIGHT) FROM BLOCKCHAIN);");
+            if (rs.isBeforeFirst()){
+                info.add(String.valueOf(rs.getInt("HEIGHT")));
+                while (rs.next()){
+                    info.add(rs.getString("HEADERHASH"));
+                }
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return info;
+    }
+
+    private synchronized void resetChainLoop(ArrayList<String> highestHeaders){
+        int height = Integer.valueOf(highestHeaders.get(0));
+        highestHeaders.remove(0);
+        int i = highestHeaders.size() - 1;
+        while (i >= 0){
+            if (i != 0){
+                resetChain2(highestHeaders.get(i), height);
+            }else{
+                resetChain1(highestHeaders.get(i), height);
+            }
+            i--;
+        }
+    }
+
+    private synchronized void resetChain2(String headerHash, int height) {
+        String sql = constructResetChainSql("2", headerHash, height);
+        Statement stmt = null;
+        try {
+            c.close();
+            c = DriverManager.getConnection("jdbc:sqlite:vault.db");
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.commit();
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
+//        boolean stop = false;
+//        String previous = headerHash;
+//        while (!stop) {
+//            Statement stmt = null;
+//            try {
+//                stmt = c.createStatement();
+//
+//                String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '2' " +
+//                        "WHERE HEADERHASH = '" + previous + "';";
+//                stmt.executeUpdate(sql);
+//                stmt.close();
+//                c.commit();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//            try {
+//                stmt = c.createStatement();
+//                c.setAutoCommit(false);
+//                ResultSet rs = stmt.executeQuery("SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
+//                        "WHERE HEADERHASH = '" + previous + "';");
+//                if (rs.isBeforeFirst()) {
+//                    previous = rs.getString("PREVIOUSHASH");
+//                }
+//                stmt.close();
+//                rs.close();
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//            if (previous.equals("0")){
+//                stop = true;
+//            }
+//        }
+
+    }
+
+    private synchronized void resetChain1(String headerHash, int height){
+        String sql = constructResetChainSql("1", headerHash, height);
+        Statement stmt = null;
+        try {
+            //this stops table lock problems
+            c.close();
+            c = DriverManager.getConnection("jdbc:sqlite:vault.db");
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.commit();
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
+//        boolean stop = false;
+//        String previous = headerHash;
+//        while (!stop) {
+//            Statement stmt = null;
+//            try {
+//                stmt = c.createStatement();
+//
+//                String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '1' " +
+//                        "WHERE HEADERHASH = '" + previous + "';";
+//                stmt.executeUpdate(sql);
+//                stmt.close();
+//                c.commit();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//            try {
+//                stmt = c.createStatement();
+//                c.setAutoCommit(false);
+//                ResultSet rs = stmt.executeQuery("SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
+//                        "WHERE HEADERHASH = '" + previous + "';");
+//                if (rs.isBeforeFirst()) {
+//                    previous = rs.getString("PREVIOUSHASH");
+//                }
+//                stmt.close();
+//                rs.close();
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//            if (previous.equals("0")){
+//                stop = true;
+//            }
+//        }
+    }
+
+    private synchronized String constructResetChainSql(String number, String headerHash, int height){
+//        String sql = "CREATE TEMPORARY TABLE IF NOT EXISTS CHAINTABLE (HEADERHASH TXT NOT NULL, HEIGHT INT NOT NULL); ";
+//        //sql = sql + "DELETE FROM CHAINTABLE; ";
+//        sql = sql + "INSERT INTO CHAINTABLE (HEADERHASH, HEIGHT) VALUES ('" + headerHash + "', " + height + "); ";
+//        while (height > 0){
+//            height--;
+//            sql = sql + "INSERT INTO CHAINTABLE (HEADERHASH, HEIGHT) VALUES " +
+//                    "((SELECT PREVIOUSHASH FROM BLOCKCHAIN WHERE HEADERHASH = " +
+//                    "(SELECT HEADERHASH FROM CHAINTABLE WHERE HEIGHT = (SELECT MIN(HEIGHT) FROM CHAINTABLE))), "
+//                    + height + "); ";
+//        }
+//        sql = sql + "UPDATE BLOCKCHAIN SET CHAIN  = '" + number + "' WHERE HEADERHASH IN " +
+//                "(SELECT HEADERHASH FROM CHAINTABLE); ";
+//        sql = sql + "DROP TABLE CHAINTABLE;";
+//        System.out.println(sql);
+//        return sql;
+
+//        String sql = "WITH RECURSIVE " +
+//                "parent_of(HEADERHASH, PREVIOUSHASH) AS " +
+//                "(SELECT HEADERHASH, PREVIOUSHASH FROM BLOCKCHAIN)," +
+//                "ancestor_of(HEADERHASH) AS " +
+//                "(SELECT PREVIOUSHASH FROM parent_of WHERE HEADERHASH = '" + headerHash + "' " +
+//                "UNION ALL " +
+//                "SELECT PREVIOUSHASH FROM parent_of JOIN ancestor_of USING(HEADERHASH)) " +
+//                "UPDATE BLOCKCHAIN SET CHAIN = '" + number + "' WHERE HEADERHASH IN " +
+//                "(SELECT HEADERHASH FROM ancestor_of); ";
+
+        String sql = "WITH RECURSIVE " +
+                "same_chain(HEADERHASH) AS (" +
+                "VALUES('" + headerHash + "') " +
+                "UNION " +
+                "SELECT BLOCKCHAIN.PREVIOUSHASH FROM BLOCKCHAIN, same_chain " +
+                "WHERE BLOCKCHAIN.HEADERHASH = same_chain.HEADERHASH) " +
+                "UPDATE BLOCKCHAIN SET CHAIN = '" + number + "' WHERE HEADERHASH IN " +
+                "(SELECT HEADERHASH FROM same_chain); ";
+        return sql;
+    }
+
+    private synchronized String getPreviousHash(String headerHash){
+        String previous = "";
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+            c.setAutoCommit(false);
+            ResultSet rs = stmt.executeQuery( "SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
+                    "WHERE HEADERHASH = '" + headerHash + "';");
+            if (rs.isBeforeFirst()){
+                previous = rs.getString("PREVIOUSHASH");
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return previous;
+    }
+
+    private synchronized void resetChain(String headerHash, int number){
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+
+            String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '" + String.valueOf(number) + "' " +
+                    "WHERE HEADERHASH = '" + headerHash + "';";
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.commit();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public synchronized ArrayList<ArrayList> getFullTweet(String txHash){
@@ -2264,7 +2525,8 @@ public class SQLiteJDBC {
             c.setAutoCommit(false);
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery( "SELECT COINNUMBER FROM OPENTXOTABLE WHERE PUBKEYHASH = " +
-                    "(SELECT PUBKEYHASH FROM USER WHERE USERNAME = '" + username + "');");
+                    "(SELECT PUBKEYHASH FROM USER WHERE USERNAME = '" + username + "') " +
+                    "AND HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = '1');");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
                     coinsTotal = coinsTotal + Integer.valueOf(rs.getString("COINNUMBER"));
@@ -2312,7 +2574,7 @@ public class SQLiteJDBC {
         }
     }
 
-    public synchronized ArrayList<ArrayList> getMyOpenTx(String username, String currentHeaderHash){
+    public synchronized ArrayList<ArrayList> getMyOpenTx(String username, int offset){
         ArrayList<ArrayList> openList = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -2320,14 +2582,21 @@ public class SQLiteJDBC {
             c.setAutoCommit(false);
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery( "SELECT OPENTXOTABLE.TXHASH, OPENTXOTABLE.COINNUMBER, " +
-                    "OPENTXOTABLE.HEADERHASH, TXTABLE.TYPE FROM OPENTXOTABLE LEFT OUTER JOIN TXTABLE ON " +
-                    "OPENTXOTABLE.TXHASH = TXTABLE.TXHASH WHERE OPENTXOTABLE.PUBKEYHASH = " +
-                    "(SELECT PUBKEYHASH FROM USER WHERE USERNAME = '" + username + "');");
+                    "OPENTXOTABLE.HEADERHASH, TXTABLE.TYPE, BLOCKCHAIN.HEIGHT FROM OPENTXOTABLE " +
+                    "JOIN TXTABLE ON " +
+                    "OPENTXOTABLE.TXHASH = TXTABLE.TXHASH " +
+                    "JOIN BLOCKCHAIN ON " +
+                    "OPENTXOTABLE.HEADERHASH = BLOCKCHAIN.HEADERHASH " +
+                    "WHERE OPENTXOTABLE.PUBKEYHASH = " +
+                    "(SELECT PUBKEYHASH FROM USER WHERE USERNAME = '" + username + "') AND " +
+                    "BLOCKCHAIN.CHAIN = '1' " +
+                    "ORDER BY TXTABLE.ID DESC LIMIT 100 OFFSET " + offset + ";");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
                     ArrayList<String> openTx = new ArrayList<>();
                     openTx.addAll(Arrays.asList(rs.getString("TXHASH"), rs.getString("TYPE"),
-                            rs.getString("COINNUMBER"), rs.getString("HEADERHASH")));
+                            rs.getString("COINNUMBER"), rs.getString("HEADERHASH"),
+                            rs.getString("HEIGHT")));
                     allOpen.add(openTx);
                 }
             }
@@ -2335,14 +2604,7 @@ public class SQLiteJDBC {
             rs.close();
             stmt.close();
             return allOpen;
-            // TODO find a way to make the below code faster, it is too slow right now, use chain column in db
-//            ArrayList<String> miningInfo = getMiningInfo();
-//            for (ArrayList<String> openTx: allOpen){
-//                //check if in active chain or not yet in a chain
-//                if (isTxAcceptable(openTx.get(0), miningInfo) || getHeaderHashOfTx(openTx.get(0)).get(0).equals("no")){
-//                    openList.add(openTx);
-//                }
-//            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }

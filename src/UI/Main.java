@@ -151,6 +151,7 @@ public class Main extends Application{
 
     public void changeScene(){
         //change to big window scene after block chain catches up
+        nb.startNewMiner();
         Scene bigWindow = new BigWindow(this, db, username, nb).getScene();
         bigWindow.getStylesheets().add
                 (Main.class.getResource("skin.css").toExternalForm());

@@ -89,7 +89,9 @@ public class NodeBase {
     private void callEnoughFriends(){
         //contact others in P2P network
         try {
-            new NodeParty(this, db).start();
+            NodeParty party = new NodeParty(this, db);
+            Thread partyThread = new Thread(party);
+            partyThread.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -231,7 +233,7 @@ public class NodeBase {
         }
     }
 
-    private void startNewMiner(){
+    public void startNewMiner(){
         this.minerExecutor = Executors.newSingleThreadExecutor();
         System.out.println("startminer username: " + username);
         try {
@@ -807,7 +809,7 @@ public class NodeBase {
         setUsername(username);
         setIpPort(networkType, nameOfInsideNetwork);
         startNewServer(networkType);
-        startNewMiner();
+        //startNewMiner();
         updateTalkersUser(networkType);
     }
 

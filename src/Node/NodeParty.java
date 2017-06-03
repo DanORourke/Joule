@@ -9,7 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class NodeParty extends Thread {
+public class NodeParty implements Runnable {
     private SQLiteJDBC db;
     private NodeBase nb;
     private int timeout;

@@ -39,7 +39,9 @@ public class BigWindow {
     private int lastReporterTweetsNumber;
     private int myLastTweetNumber;
     private int myLastFeedNumber;
-    private ObservableList<Tx> txData;
+    private int fillTxTableStart;
+
+    private ObservableList<TxInfo> txInfoData;
 
     public BigWindow(Main stageClass, SQLiteJDBC db, String username, NodeBase nb) {
 
@@ -58,6 +60,7 @@ public class BigWindow {
         this.lastReporterTweetsNumber = 0;
         this.myLastTweetNumber = 0;
         this.myLastFeedNumber = 0;
+        this.fillTxTableStart = 0;
         createMyProfile();
 
         setTabPane();
@@ -107,6 +110,19 @@ public class BigWindow {
         Label tableLabel = new Label("Table of Spendable Reports:");
         bankGrid.add(tableLabel, 0, 1);
 
+        Button moreBtn = new Button("Next 100");
+        moreBtn.setMaxWidth(Double.MAX_VALUE);
+        bankGrid.add(moreBtn, 1, 1);
+        moreBtn.setOnAction(new EventHandler<ActionEvent>() {
+
+            @Override
+            public void handle(ActionEvent e) {
+                fillTxTableStart += 100;
+                txInfoData.clear();
+                txInfoData.addAll(fillTxTable());
+            }
+        });
+
         TableView table = createBankTable();
         bankGrid.add(table, 0, 2, 2, 1);
 
@@ -147,8 +163,8 @@ public class BigWindow {
                     giveTarget.setFill(Color.BLACK);
                     giveTarget.setText("Joules given");
                     spendTextLabel.setText(getSpendTextLabelText());
-                    txData.clear();
-                    txData.addAll(fillTxTable());
+                    txInfoData.clear();
+                    txInfoData.addAll(fillTxTable());
                     giveFullField.clear();
                     giveHashField.clear();
                     giveNumberField.clear();
@@ -156,8 +172,8 @@ public class BigWindow {
                     giveTarget.setFill(Color.FIREBRICK);
                     giveTarget.setText("ERROR");
                     spendTextLabel.setText(getSpendTextLabelText());
-                    txData.clear();
-                    txData.addAll(fillTxTable());
+                    txInfoData.clear();
+                    txInfoData.addAll(fillTxTable());
                     giveFullField.clear();
                     giveHashField.clear();
                     giveNumberField.clear();
@@ -176,10 +192,10 @@ public class BigWindow {
                 boolean success = nb.giveTx(username, pubKeyHash, number);
                 if (success){
                     giveTarget.setFill(Color.BLACK);
-                    giveTarget.setText("Tx given");
+                    giveTarget.setText("TxInfo given");
                     spendTextLabel.setText(getSpendTextLabelText());
-                    txData.clear();
-                    txData.addAll(fillTxTable());
+                    txInfoData.clear();
+                    txInfoData.addAll(fillTxTable());
                     giveFullField.clear();
                     giveHashField.clear();
                     giveNumberField.clear();
@@ -187,8 +203,8 @@ public class BigWindow {
                     giveTarget.setFill(Color.FIREBRICK);
                     giveTarget.setText("ERROR");
                     spendTextLabel.setText(getSpendTextLabelText());
-                    txData.clear();
-                    txData.addAll(fillTxTable());
+                    txInfoData.clear();
+                    txInfoData.addAll(fillTxTable());
                     giveFullField.clear();
                     giveHashField.clear();
                     giveNumberField.clear();
@@ -207,10 +223,11 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
+                fillTxTableStart = 0;
                 spendTextLabel.setText(getSpendTextLabelText());
                 txPerTweetLabel.setText(getPerTxLabelText());
-                txData.clear();
-                txData.addAll(fillTxTable());
+                txInfoData.clear();
+                txInfoData.addAll(fillTxTable());
                 txPerTarget.setText("");
                 giveTarget.setText("");
                 giveFullField.clear();
@@ -269,7 +286,7 @@ public class BigWindow {
         table.getSelectionModel().setCellSelectionEnabled(true);
         table.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
-        txData = fillTxTable();
+        txInfoData = fillTxTable();
 
         TableColumn hashCol = new TableColumn("Report Hash");
         hashCol.setCellValueFactory( new PropertyValueFactory<>( "hash" ) );
@@ -280,31 +297,35 @@ public class BigWindow {
         TableColumn numberCol = new TableColumn("Joules");
         numberCol.setCellValueFactory( new PropertyValueFactory<>( "number" ) );
 
-        TableColumn headerCol = new TableColumn("Header Hash");
+        TableColumn headerCol = new TableColumn("Block Hash");
         headerCol.setCellValueFactory( new PropertyValueFactory<>( "headerHash") );
 
-        table.setItems( txData );
-        table.getColumns().addAll(hashCol, typeCol, numberCol, headerCol);
+        TableColumn heightCol = new TableColumn("Block Height");
+        heightCol.setCellValueFactory( new PropertyValueFactory<>( "height") );
+
+        table.setItems(txInfoData);
+        table.getColumns().addAll(hashCol, typeCol, numberCol, heightCol, headerCol);
 
         table.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
         hashCol.setMaxWidth( 1f * Integer.MAX_VALUE * 35 ); // 35% of Width
         typeCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
         numberCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
-        headerCol.setMaxWidth( 1f * Integer.MAX_VALUE * 35 );
+        heightCol.setMaxWidth( 1f * Integer.MAX_VALUE * 15 );
+        headerCol.setMaxWidth( 1f * Integer.MAX_VALUE * 20 );
 
         return table;
     }
 
-    private ObservableList<Tx> fillTxTable() {
+    private ObservableList<TxInfo> fillTxTable() {
 
-        String currentHeaderHash = db.getCurrentHeaderHash();
-        ArrayList<ArrayList> myOpenTx = db.getMyOpenTx(username, currentHeaderHash);
+        //String currentHeaderHash = db.getCurrentHeaderHash();
+        ArrayList<ArrayList> myOpenTx = db.getMyOpenTx(username, fillTxTableStart);
         System.out.println("window getMyOpenTx myOpenTx: " + myOpenTx);
-        ObservableList<Tx> txList = FXCollections.observableArrayList();
+        ObservableList<TxInfo> txInfoList = FXCollections.observableArrayList();
         for (ArrayList<String> tx : myOpenTx){
-            txList.add(new Tx(tx.get(0), tx.get(1), tx.get(2), tx.get(3)));
+            txInfoList.add(new TxInfo(tx.get(0), tx.get(1), tx.get(2), tx.get(3), tx.get(4)));
         }
-        return txList;
+        return txInfoList;
     }
 
     private void setBankConstraints(GridPane bankGrid){
@@ -834,7 +855,7 @@ public class BigWindow {
         TableColumn followCol = new TableColumn("Follow");
         followCol.setCellValueFactory( new PropertyValueFactory<>( "follow" ) );
 
-        TableColumn profileBtnCol = new TableColumn("Profile");
+        TableColumn profileBtnCol = new TableColumn("ProfileReport");
         Callback<TableColumn<Profile, String>, TableCell<Profile, String>> cellFactory = //
                 new Callback<TableColumn<Profile, String>, TableCell<Profile, String>>()
                 {
@@ -1226,7 +1247,7 @@ public class BigWindow {
         TableColumn followCol = new TableColumn("Follow");
         followCol.setCellValueFactory( new PropertyValueFactory<>( "follow" ) );
 
-        TableColumn profileBtnCol = new TableColumn("Profile");
+        TableColumn profileBtnCol = new TableColumn("ProfileReport");
         Callback<TableColumn<Profile, String>, TableCell<Profile, String>> cellFactory = //
                 new Callback<TableColumn<Profile, String>, TableCell<Profile, String>>()
                 {

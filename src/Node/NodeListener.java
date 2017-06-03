@@ -8,7 +8,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class NodeListener extends Thread{
+public class NodeListener implements Runnable{
 
     private Socket socket;
     private NodeTalker talker;
