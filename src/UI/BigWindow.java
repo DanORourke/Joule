@@ -1610,7 +1610,10 @@ public class BigWindow {
     public void addTweet(String name, String tweet){
         System.out.println("Window addTweet: " + name +  ": " + tweet);
         if (myLastFeedNumber == 0){
-            feedArea.setText(createMyTweets());
+            feedArea.setText(createTweetsFeed());
+        }
+        if (myLastTweetNumber == 0){
+            myTweetArea.setText(createMyTweets());
         }
     }
 }
