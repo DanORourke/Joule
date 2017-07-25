@@ -113,7 +113,7 @@ public class Main extends Application{
                                     changeScene();
                                 }
                             });
-                        } else if(myBlockHeight != blockHeight || myBlockHeight == 0){
+                        } else if((talkerSize > 0 && myBlockHeight != blockHeight) || loadingReps <= 10){
                             Platform.runLater(new Runnable(){
                                 @Override
                                 public void run() {
@@ -156,6 +156,9 @@ public class Main extends Application{
         bigWindow.getStylesheets().add
                 (Main.class.getResource("skin.css").toExternalForm());
         primaryStage.setScene(bigWindow);
+        //TODO stage doesn't change size when the window is minimized
+        primaryStage.setWidth(600);
+        primaryStage.setHeight(575);
         primaryStage.centerOnScreen();
 
     }

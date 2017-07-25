@@ -1,7 +1,9 @@
 package Structures;
 
-
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class AllTxo {
     //make map??
@@ -41,5 +43,60 @@ public class AllTxo {
 
     public int size(){
         return allTxo.size();
+    }
+
+    public boolean isEmpty(){
+        return allTxo.isEmpty();
+    }
+
+    public ArrayList<String> getWireList() {
+        ArrayList<String> wireList = new ArrayList<>();
+        wireList.add(String.valueOf(allTxo.size()));
+        for (Txo txo : allTxo){
+            wireList.addAll(txo.getWireList());
+        }
+        return wireList;
+    }
+
+    public void setTxHash(String txHash) {
+        int i = 0;
+        for (Txo txo : allTxo){
+            txo.setTxHash(txHash);
+            txo.setTxoIndex(i);
+            i ++;
+        }
+    }
+
+    public boolean isVerified() {
+        if (allTxo.isEmpty()){
+            return true;
+        }
+        //make sure indexes don't repeat or skip
+        HashSet<Integer> indexes = new HashSet<>();
+        int min = 1;
+        int max = -1;
+        for (Txo txo : allTxo){
+            int index = txo.getTxoIndex();
+            indexes.add(index);
+            if (index < min){
+                min = index;
+            }
+            if (index > max){
+                max = index;
+            }
+        }
+        if (indexes.size() != allTxo.size() || min != 0 || (max != allTxo.size() - 1)){
+            return false;
+        }
+        return true;
+    }
+
+    public void printAllTxo(){
+        if (allTxo.isEmpty()){
+            System.out.println("allTxo empty");
+        }
+        for (Txo txo : allTxo){
+            txo.printTxo();
+        }
     }
 }

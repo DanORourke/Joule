@@ -1,5 +1,8 @@
 package Structures;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class Txi {
     //Hash of the tx this txi gives joules to
     private String txHash;
@@ -12,6 +15,18 @@ public class Txi {
 
     public Txi(){
 
+    }
+
+    public Txi(String txHash, int txiIndex, String txiHash, int txiTxoIndex){
+        this.txHash = txHash;
+        this.txiIndex = txiIndex;
+        this.txiHash = txiHash;
+        this.txiTxoIndex = txiTxoIndex;
+    }
+
+    public Txi(String txiHash, int txiTxoIndex){
+        this.txiHash = txiHash;
+        this.txiTxoIndex = txiTxoIndex;
     }
 
     public String getTxHash() {
@@ -44,5 +59,16 @@ public class Txi {
 
     public void setTxiTxoIndex(int txiTxoIndex) {
         this.txiTxoIndex = txiTxoIndex;
+    }
+
+    public ArrayList<String> getWireList() {
+        ArrayList<String> wireList = new ArrayList<>();
+        wireList.addAll(Arrays.asList(String.valueOf(txiIndex), txiHash, String.valueOf(txiTxoIndex)));
+        return wireList;
+    }
+
+    public void printTxi(){
+        System.out.println("TXI    txHash " + txHash + " txiIndex " + txiIndex + " txiHash " + txiHash +
+                " txiTxoIndex " + txiTxoIndex);
     }
 }

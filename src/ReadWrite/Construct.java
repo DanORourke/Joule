@@ -1,9 +1,8 @@
 package ReadWrite;
 
 import DB.SQLiteJDBC;
-import Structures.JouleBase;
-import Structures.Tx;
-import Structures.Txo;
+import Structures.*;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,28 +15,53 @@ public class Construct {
         //TODO create tweet and block objects, stop using a bunch of lists inside of lists
     }
 
-    public ArrayList<ArrayList> constructBlockToMine(String pubKey){
-        //construct partial block needed for mining
+//    public ArrayList<ArrayList> constructBlockToMine(String pubKey){
+//        //construct partial block needed for mining
+//
+//        //get needed info
+//        ArrayList<String> blockInfo = db.getMiningInfo();
+//        ArrayList<String> txToAddArray = createTxToAddArray(blockInfo);
+//        //construct the tweet base tx
+//        String numberToAddTotal = txToAddArray.get(txToAddArray.size()-1);
+//        txToAddArray.remove(txToAddArray.size()-1);
+//        ArrayList<ArrayList> tweetBaseTx = constructTweetBaseTx(pubKey, numberToAddTotal);
+//        //construct partial header
+//        String merkleRoot = new MathStuff().createBlockMerkleRoot(txToAddArray, (String)tweetBaseTx.get(0).get(0));
+//        String height = String.valueOf(Integer.valueOf(blockInfo.get(0)) + 1);
+//        String previousHash = blockInfo.get(1);
+//        ArrayList<String> header = new ArrayList<>();
+//        String target =  calculateTarget(blockInfo, Integer.valueOf(height));
+//        header.addAll(Arrays.asList(height, merkleRoot, previousHash, target));
+//        //add all together
+//        ArrayList<ArrayList> total = new ArrayList<>();
+//        total.addAll(Arrays.asList(header, tweetBaseTx, txToAddArray));
+//        System.out.println("Construct block to mine total: " + total);
+//        return total;
+//    }
 
-        //get needed info
-        ArrayList<String> blockInfo = db.getMiningInfo();
-        ArrayList<String> txToAddArray = createTxToAddArray(blockInfo);
-        //construct the tweet base tx
-        String numberToAddTotal = txToAddArray.get(txToAddArray.size()-1);
-        txToAddArray.remove(txToAddArray.size()-1);
-        ArrayList<ArrayList> tweetBaseTx = constructTweetBaseTx(pubKey, numberToAddTotal);
-        //construct partial header
-        String merkleRoot = new MathStuff().createBlockMerkleRoot(txToAddArray, (String)tweetBaseTx.get(0).get(0));
-        String height = String.valueOf(Integer.valueOf(blockInfo.get(0)) + 1);
-        String previousHash = blockInfo.get(1);
-        ArrayList<String> header = new ArrayList<>();
-        String target =  calculateTarget(blockInfo, Integer.valueOf(height));
-        header.addAll(Arrays.asList(height, merkleRoot, previousHash, target));
-        //add all together
-        ArrayList<ArrayList> total = new ArrayList<>();
-        total.addAll(Arrays.asList(header, tweetBaseTx, txToAddArray));
-        System.out.println("Construct block to mine total: " + total);
-        return total;
+    public Block constructNewMinerBlock(String pubKey){
+        //get txs not yet in a block
+        AllTx allTx = db.getNewMinerBlockAllTx();
+        //count up the reward for this block + standard reward
+        int reward = allTx.calcBlockReward() + getMinerReward();
+        //create JouleBase tx for this block
+        JouleBase base = constructJouleBase(pubKey, reward);
+        //get header of highest block;
+        Header pastHeader = db.getHighestHeader();
+        //use that to create outline of new header
+        Header header = new Header(pastHeader);
+        //add merkleRoot to Header
+        header.setMerkleRoot(allTx.calcMerkleRoot(base.getHash()));
+        //change target at intervals
+        if (header.getHeight()%100 == 0){
+            header.resetTarget(db);
+        }
+        //calculate header hash
+        header.calculateHash();
+        //add together to form new Block
+        Block block = new Block(header, base, allTx);
+        block.printBlock();
+        return block;
     }
 
     private String calculateTarget(ArrayList<String> blockInfo, int height){
@@ -100,40 +124,121 @@ public class Construct {
         return txToAddArray;
     }
 
-    public ArrayList<ArrayList> constructTweetBaseTx(String pubKey, String numberToMinerTotal){
-        //construct a tweet base tx with all of its component parts
-        ArrayList<ArrayList> fullTweet = new ArrayList<>();
-        ArrayList<String> tx = new ArrayList<>();
-        ArrayList<ArrayList> txo = new ArrayList<>();
-        ArrayList<String> txoInstance = new ArrayList<>();
+//    public ArrayList<ArrayList> constructTweetBaseTx(String pubKey, String numberToMinerTotal){
+//        //construct a tweet base tx with all of its component parts
+//        ArrayList<ArrayList> fullTweet = new ArrayList<>();
+//        ArrayList<String> tx = new ArrayList<>();
+//        ArrayList<ArrayList> txo = new ArrayList<>();
+//        ArrayList<String> txoInstance = new ArrayList<>();
+//
+//        //add time and default values to tx
+//        long time = new java.util.Date().getTime();
+//        String hash = new MathStuff().createHash("1" + "0" + "0" + String.valueOf(time) + "0");
+//        tx.addAll(Arrays.asList(hash, "1", "0", "0", String.valueOf(time), "0"));
+//        fullTweet.add(tx);
+//
+//        //add reward, tx position number, and lock to txo
+//        String minerTotal = String.valueOf(Integer.valueOf(numberToMinerTotal) + getMinerReward());
+//        txoInstance.addAll(Arrays.asList(minerTotal, "0", pubKey));
+//        txo.add(txoInstance);
+//        fullTweet.add(txo);
+//
+//        return fullTweet;
+//    }
 
-        //add time and default values to tx
-        //TODO only time ensures unique hash, may want to add more
+    private JouleBase constructJouleBase(String pubKey, int reward){
+        //create the jouleBase tx
         long time = new java.util.Date().getTime();
-        String hash = new MathStuff().createHash("1" + "0" + "0" + String.valueOf(time) + "0");
-        tx.addAll(Arrays.asList(hash, "1", "0", "0", String.valueOf(time), "0"));
-        fullTweet.add(tx);
-
-        //add reward, tx position number, and lock to txo
-        String minerTotal = String.valueOf(Integer.valueOf(numberToMinerTotal) + getMinerReward());
-        txoInstance.addAll(Arrays.asList(minerTotal, "0", pubKey));
-        txo.add(txoInstance);
-        fullTweet.add(txo);
-
-
-        //TODO new version with structures, simpler to understand
-//        //create the joulebase tx
-//        JouleBase base = new JouleBase(time);
-//        //add the txo to the tx
-//        base.addTxo(Integer.valueOf(numberToMinerTotal) + getMinerReward(), 0, pubKey);
-
-
-        return fullTweet;
+        JouleBase base = new JouleBase(time);
+        //add the txo to the tx
+        base.addTxo(0, reward, pubKey);
+        return base;
     }
 
     private int getMinerReward(){
-        //TODO make this respond to inflation in some way, grow with demand, usage. same as in verifyTweet
+        //TODO make this respond to inflation in some way, grow with demand, usage. same as in verify
         return 25;
+    }
+
+    public Tx constructProfileTx(String profile, String user){
+        //start with finding tx whose txo can spent as a txi
+        AllTxi allTxi = db.getNewReportAllTxi(user);
+        //return marked tx if there are no txo to spend
+        if (allTxi.getAllTxi().isEmpty()){
+            System.out.println("Not enough joules to spend");
+            return new Tx(false);
+        }
+        //construct allTxo
+        AllTxo allTxo = new AllTxo();
+        int change = allTxi.getChange();
+        if (change > 0){
+            Txo txo = new Txo(0, change, allTxi.getPubKey());
+            allTxo.addTxo(txo);
+        }
+        //construct tx
+        Tx tx = new Tx(allTxi, allTxo, profile, 3);
+        if (!new Verify(db).verifyTx(tx)){
+            return new Tx(false);
+        }
+        return tx;
+    }
+
+    public Tx constructReportTx(String report, String user){
+        //start with finding tx whose txo can spent as a txi
+        AllTxi allTxi = db.getNewReportAllTxi(user);
+        //return marked tx if there are no txo to spend
+        if (allTxi.getAllTxi().isEmpty()){
+            System.out.println("Not enough joules to spend");
+            return new Tx(false);
+        }
+        //construct allTxo
+        AllTxo allTxo = new AllTxo();
+        int change = allTxi.getChange();
+        if (change > 0){
+            Txo txo = new Txo(0, change, allTxi.getPubKey());
+            allTxo.addTxo(txo);
+        }
+        //construct tx
+        Tx tx = new Tx(allTxi, allTxo, report);
+        if (!new Verify(db).verifyTx(tx)){
+            return new Tx(false);
+        }
+        return tx;
+    }
+
+    public Tx constructGiveTx(String username, String pubKey, int number) {
+        //start with finding tx whose txo can spend as a txi
+        AllTxi allTxi = db.getNewGiveAllTxi(username, number);
+        //return marked tx if there are not enough joules to spend
+        if (allTxi.getAllTxi().isEmpty()){
+            System.out.println("Not enough joules to spend");
+            return new Tx(false);
+        }
+        //construct allTxo
+        AllTxo allTxo = new AllTxo();
+        //add give txo
+        if (pubKey.length() == 64){
+            pubKey = db.getPubKeyFromHash(pubKey);
+        }
+        if (pubKey.equals("NA")){
+            return new Tx(false);
+        }
+        Txo txo = new Txo(0, number, pubKey);
+        allTxo.addTxo(txo);
+        //add change txo
+        int change = allTxi.getChange() - number;
+        if (change > 0){
+            Txo txoChange = new Txo(1, change, allTxi.getPubKey());
+            allTxo.addTxo(txoChange);
+        }else if (change < 0){
+            return new Tx(false);
+        }
+        //construct tx
+        Tx tx = new Tx(allTxi, allTxo, 4);
+        if (!new Verify(db).verifyTx(tx)){
+            return new Tx(false);
+        }
+        return tx;
     }
 
     public ArrayList<ArrayList> constructSimpleTx(String username, String tweet, String type){
@@ -223,7 +328,7 @@ public class Construct {
 
     private String unlockTxi(String merkle, ArrayList<String> userInfo){
         String privKey = userInfo.get(4);
-        return new MathStuff().signTxo(privKey, merkle);
+        return new MathStuff().signTx(privKey, merkle);
     }
 
     private ArrayList<ArrayList> getSpendableTx(String username){
@@ -253,7 +358,7 @@ public class Construct {
         return db.getUserInfo(username);
     }
 
-    public ArrayList<ArrayList> constructGiveTx(String username, String pubKey, String number) {
+    public ArrayList<ArrayList> constructGiveTxold(String username, String pubKey, String number) {
         ArrayList<ArrayList> fullTweet = new ArrayList<>();
         if (pubKey.length() == 64){
             pubKey = db.getPubKeyFromHash(pubKey);

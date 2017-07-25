@@ -2,6 +2,11 @@ package Structures;
 
 import ReadWrite.MathStuff;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
 public class TxSuper {
     private String hash;
     private int type;
@@ -9,10 +14,32 @@ public class TxSuper {
     private int reportLength;
     private String report;
     private int numberToMiner;
+    private int txIndex;
     private AllTxo allTxo;
 
     public TxSuper(){
         allTxo = new AllTxo();
+    }
+
+    public TxSuper(String hash, int type, String signature, int reportLength, String report, int numberToMiner){
+        this.hash = hash;
+        this.type = type;
+        this.signature = signature;
+        this.reportLength = reportLength;
+        this.report = report;
+        this.numberToMiner = numberToMiner;
+        allTxo = new AllTxo();
+    }
+
+    public TxSuper(String hash, int type, String signature, int reportLength, String report,
+                   int numberToMiner, AllTxo allTxo){
+        this.hash = hash;
+        this.type = type;
+        this.signature = signature;
+        this.reportLength = reportLength;
+        this.report = report;
+        this.numberToMiner = numberToMiner;
+        this.allTxo = allTxo;
     }
 
     public String getHash() {
@@ -23,7 +50,6 @@ public class TxSuper {
         this.hash = hash;
     }
     public void createHash(){
-        //do I need to convert to string??
         hash = new MathStuff().createHash(type + signature +
                 reportLength + report + numberToMiner);
     }
@@ -61,7 +87,6 @@ public class TxSuper {
         this.report = report;
     }
 
-
     public int getNumberToMiner() {
         return numberToMiner;
     }
@@ -86,8 +111,8 @@ public class TxSuper {
         allTxo.addTxo(txo);
     }
 
-    public void addTxo(int txoIndex, int numberToTxo, String txoPubKey){
-        allTxo.addTxo(txoIndex, new Txo(hash, txoIndex, numberToTxo, txoPubKey));
+    public void addTxo(int txoIndex, int joulesToTxo, String txoPubKey){
+        allTxo.addTxo(txoIndex, new Txo(hash, txoIndex, joulesToTxo, txoPubKey));
     }
 
     public Txo getTxo(int index){
@@ -101,4 +126,25 @@ public class TxSuper {
     public void removeTxo(Txo txo){
         allTxo.removeTxo(txo);
     }
+
+    public boolean testHash(){
+        return hash.equals(new MathStuff().createHash(type + signature +
+                reportLength + report + numberToMiner));
+    }
+
+    public int getTxIndex() {
+        return txIndex;
+    }
+
+    public void setTxIndex(int txIndex) {
+        this.txIndex = txIndex;
+    }
+
+    public ArrayList<String> getWireList() {
+        ArrayList<String> wireList = new ArrayList<>();
+        wireList.addAll(Arrays.asList(hash, String.valueOf(type), signature,
+                String.valueOf(reportLength), report, String.valueOf(numberToMiner)));
+        return wireList;
+    }
+
 }

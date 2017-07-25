@@ -1,19 +1,22 @@
 package DB;
 
+import ReadWrite.Construct;
 import ReadWrite.MathStuff;
+import Structures.*;
 
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 
 public class SQLiteJDBC {
     private Connection c;
     private boolean firstTime;
     private String pubKey1;
     private String pubKey1Hash;
-    private String seedTime;
+    private long seedTime;
     private String seedTarget;
 
     public SQLiteJDBC() {
@@ -46,7 +49,7 @@ public class SQLiteJDBC {
         pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
                 "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
-        seedTime = "1493558407121";
+        seedTime = 1493558407121L;
         seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
@@ -67,7 +70,7 @@ public class SQLiteJDBC {
                 // set up db
                 createTables();
                 //turn on to give server access to first block
-                //addSeedUsers();
+                addSeedUsers();
             }
 
         }catch (Exception e){
@@ -150,9 +153,9 @@ public class SQLiteJDBC {
             String sql = "CREATE TABLE OPENTXOTABLE " +
                     " (ID INTEGER PRIMARY KEY, " +
                     " TXHASH TEXT NOT NULL, " +
-                    " TXOINDEX TEXT NOT NULL, " +
+                    " TXOINDEX INT NOT NULL, " +
                     " HEADERHASH TEXT NOT NULL, " +
-                    " COINNUMBER TEXT NOT NULL, " +
+                    " COINNUMBER INT NOT NULL, " +
                     " PUBKEYHASH TEXT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
@@ -190,7 +193,7 @@ public class SQLiteJDBC {
                     " (ID INTEGER PRIMARY KEY, " +
                     " HEADERHASH TEXT NOT NULL, " +
                     " TXHASH TEXT NOT NULL, " +
-                    " TXINDEX TEXT NOT NULL)";
+                    " TXINDEX INT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -207,11 +210,11 @@ public class SQLiteJDBC {
             String sql = "CREATE TABLE TXTABLE " +
                     " (ID INTEGER PRIMARY KEY," +
                     " TXHASH TEXT NOT NULL UNIQUE, " +
-                    " TYPE TEXT NOT NULL, " +
+                    " TYPE INT NOT NULL, " +
                     " UNLOCK TEXT NOT NULL, " +
-                    " TWEETLENGTH TEXT NOT NULL, " +
-                    " TWEET TEXT NOT NULL, " +
-                    " NUMBERTOMINER TEXT NOT NULL)";
+                    " REPORTLENGTH INT NOT NULL, " +
+                    " REPORT TEXT NOT NULL, " +
+                    " NUMBERTOMINER INT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -228,8 +231,8 @@ public class SQLiteJDBC {
             String sql = "CREATE TABLE TXOTABLE " +
                     " (ID INTEGER PRIMARY KEY," +
                     " TXHASH TEXT NOT NULL, " +
-                    " TXOINDEX TEXT NOT NULL, " +
-                    " NUMBERTOTXO TEXT NOT NULL, " +
+                    " TXOINDEX INT NOT NULL, " +
+                    " NUMBERTOTXO INT NOT NULL, " +
                     " TXOPUBKEYHASH TEXT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
@@ -247,9 +250,9 @@ public class SQLiteJDBC {
             String sql = "CREATE TABLE TXITABLE " +
                     " (ID INTEGER PRIMARY KEY, " +
                     " TXHASH TEXT NOT NULL, " +
-                    " TXIINDEX TEXT NOT NULL, " +
+                    " TXIINDEX INT NOT NULL, " +
                     " TXIHASH TEXT NOT NULL, " +
-                    " TXITXOINDEX TEXT NOT NULL)";
+                    " TXITXOINDEX INT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -270,8 +273,8 @@ public class SQLiteJDBC {
                     " MERKLEROOT TEXT NOT NULL, " +
                     " PREVIOUSHASH TEXT NOT NULL, " +
                     " TARGET TEXT NOT NULL, " +
-                    " NONCE TEXT NOT NULL, " +
-                    " CHAIN TEXT NOT NULL)";
+                    " NONCE INT NOT NULL, " +
+                    " CHAIN INT NOT NULL)";
             // Chain and Id are not part of the header
             stmt.executeUpdate(sql);
             stmt.close();
@@ -306,31 +309,46 @@ public class SQLiteJDBC {
 
     private synchronized void addSeedBlock(){
 
-        ArrayList<ArrayList> fullBlock = new ArrayList<>();
-        ArrayList<String> header = new ArrayList<>();
-        ArrayList<ArrayList> fullTweet = new ArrayList<>();
-        ArrayList<String> tx = new ArrayList<>();
-        ArrayList<ArrayList> txoList = new ArrayList<>();
-        ArrayList<String> txo = new ArrayList<>();
-        ArrayList<String> txList = new ArrayList<>();
+//        ArrayList<ArrayList> fullBlock = new ArrayList<>();
+//        ArrayList<String> header = new ArrayList<>();
+//        ArrayList<ArrayList> fullTweet = new ArrayList<>();
+//        ArrayList<String> tx = new ArrayList<>();
+//        ArrayList<ArrayList> txoList = new ArrayList<>();
+//        ArrayList<String> txo = new ArrayList<>();
+//        ArrayList<String> txList = new ArrayList<>();
+//
+//        String txHash = new MathStuff().createHash( "1" + "0" + "0" + seedTime + "0");
+//        tx.addAll(Arrays.asList(txHash, "1", "0", "0", seedTime, "0"));
+//        txo.addAll(Arrays.asList("25", "0", pubKey1));
+//        txoList.add(txo);
+//        fullTweet.add(tx);
+//        fullTweet.add(txoList);
+//
+//        String merkle = new MathStuff().createBlockMerkleRoot(null, tx.get(0));
+//        String headerhash = new MathStuff().createHash("0" + merkle + "0" + seedTarget + "0");
+//        header.addAll(Arrays.asList(headerhash, "0", merkle, "0", seedTarget, "0"));
+//
+//        fullBlock.add(header);
+//        fullBlock.add(fullTweet);
+//        fullBlock.add(txList);
+//
+//        addFullBlock(fullBlock);
 
-        String txHash = new MathStuff().createHash( "1" + "0" + "0" + seedTime + "0");
-        tx.addAll(Arrays.asList(txHash, "1", "0", "0", seedTime, "0"));
-        txo.addAll(Arrays.asList("25", "0", pubKey1));
-        txoList.add(txo);
-        fullTweet.add(tx);
-        fullTweet.add(txoList);
-
-        String merkle = new MathStuff().createBlockMerkleRoot(null, tx.get(0));
-        String headerhash = new MathStuff().createHash("0" + merkle + "0" + seedTarget + "0");
-        header.addAll(Arrays.asList(headerhash, "0", merkle, "0", seedTarget, "0"));
-
-        fullBlock.add(header);
-        fullBlock.add(fullTweet);
-        fullBlock.add(txList);
-
-        addFullBlock(fullBlock);
-
+        //create Joulebse
+        JouleBase base = new JouleBase(seedTime);
+        //add the txo to the tx
+        base.addTxo(0, 25, pubKey1);
+        //create header
+        Header header = new Header(0, "0", seedTarget, 0);
+        AllTx allTx = new AllTx();
+        //create the merkle root
+        header.setMerkleRoot(allTx.calcMerkleRoot(base.getHash()));
+        //calculate header hash
+        header.calculateHash();
+        //create block
+        Block block = new Block(header, base, allTx);
+        //add block to the database
+        addBlock(block);
     }
 
     private synchronized void addSeedNodes(){
@@ -349,7 +367,7 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeedUsers(){
-        alternateFollow(pubKey1Hash, "YES", "asc");
+        //alternateFollow(pubKey1Hash, "YES", "asd");
         String asdName = "asd";
         String asdSalt = "9608756233693360688593294264682270";
         String asdHash = "7e9ae91dd29b15ee423d9ca3c8c3cb378fbabdf5370c16629cc6314685414a92";
@@ -370,7 +388,7 @@ public class SQLiteJDBC {
                     " PUBKEY TEXT NOT NULL, " +
                     " PRIVKEY TEXT NOT NULL, " +
                     " PUBKEYHASH TEXT NOT NULL, " +
-                    " COINPERTWEET TEXT NOT NULL)";
+                    " REPORTREWARD INT NOT NULL)";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -418,7 +436,7 @@ public class SQLiteJDBC {
         try {
             stmt = c.createStatement();
 
-            String sql = "INSERT INTO USER (USERNAME,SALT,HASH, PUBKEY, PRIVKEY, PUBKEYHASH, COINPERTWEET) " +
+            String sql = "INSERT INTO USER (USERNAME,SALT,HASH, PUBKEY, PRIVKEY, PUBKEYHASH, REPORTREWARD) " +
                     "VALUES ('" + username + "', '" + salt + "', '" + hashPass + "', '" +
                     pubKey + "', '" + privKey + "', '" + pubKeyHash + "', '" + coinPerTweet + "');";
             stmt.executeUpdate(sql);
@@ -433,7 +451,9 @@ public class SQLiteJDBC {
         }
         updateProfile(pubKey);
         alternateFollow(pubKeyHash, "YES", username);
-        alternateFollow(pubKey1Hash, "YES", username);
+        if (!pubKeyHash.equals(pubKey1Hash)){
+            alternateFollow(pubKey1Hash, "YES", username);
+        }
     }
 
     public synchronized ArrayList<String> getUserInfo(String username){
@@ -448,7 +468,8 @@ public class SQLiteJDBC {
                     user.addAll(Arrays.asList(rs.getString("USERNAME"),
                             rs.getString("SALT"), rs.getString("HASH"),
                             rs.getString("PUBKEY"), rs.getString("PRIVKEY"),
-                            rs.getString("PUBKEYHASH"), rs.getString("COINPERTWEET")));
+                            rs.getString("PUBKEYHASH"),
+                            String.valueOf(rs.getInt("REPORTREWARD"))));
                 }
             }
             stmt.close();
@@ -578,6 +599,118 @@ public class SQLiteJDBC {
         return miningInfo;
     }
 
+    public synchronized ArrayList<Block> getAllBlocks(int height){
+        //get the header hash of all headers at this height
+        ArrayList<String> allHeaders = getHeadersAtHeight(height);
+        //add all of those blocks into a list
+        ArrayList<Block> allBlocks = new ArrayList<>();
+        for (String headerHash : allHeaders){
+            allBlocks.add(getBlock(headerHash));
+        }
+        return allBlocks;
+    }
+
+    private synchronized Block getBlock(String headerHash){
+        //get header
+        Header header = getHeader(headerHash);
+        // get JouleBase
+        JouleBase jouleBase = getJouleBase(headerHash);
+        // get allTx
+        AllTx allTx = getAllTx(headerHash);
+        //form block
+        Block block = new Block(header, jouleBase, allTx);
+        block.printBlock();
+        return block;
+    }
+
+    private synchronized AllTx getAllTx(String headerHash){
+        AllTx allTx = new AllTx();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH IN " +
+                    "(SELECT TXHASH FROM MAPTABLE WHERE " +
+                    "HEADERHASH = '" + headerHash + "' AND " +
+                    "TXINDEX != 0);");
+            if (rs.isBeforeFirst()){
+                while(rs.next()){
+                    allTx.addTx(new Tx(
+                            rs.getString("TXHASH"),
+                            rs.getInt("TYPE"),
+                            rs.getString("UNLOCK"),
+                            rs.getInt("REPORTLENGTH"),
+                            rs.getString("REPORT"),
+                            rs.getInt("NUMBERTOMINER")
+                    ));
+                }
+            }else {
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allTx;
+    }
+
+    private synchronized JouleBase getJouleBase(String headerHash){
+        //get Tx
+        Statement stmt = null;
+        JouleBase jouleBase = new JouleBase();
+        boolean good = false;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH = " +
+                    "(SELECT TXHASH FROM MAPTABLE WHERE HEADERHASH = '" + headerHash + "' " +
+                    "AND TXINDEX = 0);");
+            if (rs.isBeforeFirst()){
+                //construct Tx
+                jouleBase = new JouleBase(rs.getString("TXHASH"), rs.getInt("TYPE"),
+                        rs.getString("UNLOCK"), rs.getInt("REPORTLENGTH"),
+                        rs.getString("REPORT"), rs.getInt("NUMBERTOMINER"));
+                rs.close();
+                stmt.close();
+                good = true;
+            }else {
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        if (good){
+            //get allTxo
+            AllTxo allTxo = getAllTxo(jouleBase.getHash());
+            jouleBase.setAllTxo(allTxo);
+            return jouleBase;
+        }
+        //TODO come up with better catch if something bad happens here
+        return new JouleBase();
+    }
+
+    private synchronized Header getHeader(String headerHash){
+        Statement stmt = null;
+        Header header = new Header();
+        try {
+            stmt = c.createStatement();
+            c.setAutoCommit(false);
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE HEADERHASH =" +
+                    " '" + headerHash + "';");
+            if (rs.isBeforeFirst()){
+                header = new Header(headerHash, rs.getInt("HEIGHT"), rs.getString("MERKLEROOT"),
+                        rs.getString("PREVIOUSHASH"), rs.getString("TARGET"),
+                        rs.getInt("NONCE"));
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return header;
+    }
+
     public synchronized ArrayList<ArrayList> getAllFullBlocks(int height){
         //TODO can I get all this in one call??
         ArrayList<ArrayList> allFullBlocks = new ArrayList<>();
@@ -694,6 +827,7 @@ public class SQLiteJDBC {
         return allBlockHeaders;
     }
 
+
     public synchronized boolean addFullTweet(ArrayList<ArrayList> fullTweet){
         if (fullTweet.isEmpty()){
             System.out.println("db.addFullTweet empty fulltweet");
@@ -788,8 +922,7 @@ public class SQLiteJDBC {
                 }
             }
             if(tx.get(1).equals("3")){
-                //TODO fix this or updateProfile when it comes from newTweet
-                ArrayList<String> nameAbout = convertTweetToProfile(tx.get(4));
+                ArrayList<String> nameAbout = convertReportToProfile(tx.get(4));
                 ArrayList<String> txi = (ArrayList<String>)fullTweet.get(2).get(0);
                 PreparedStatement stmt = null;
                 try {
@@ -810,7 +943,7 @@ public class SQLiteJDBC {
         return (!(entered == 0));
     }
 
-    private synchronized ArrayList<String> convertTweetToProfile(String tweet){
+    private synchronized ArrayList<String> convertReportToProfile(String tweet){
         return new ArrayList(Arrays.asList(tweet.split("/////")));
     }
 
@@ -851,6 +984,137 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return keys;
+    }
+
+    public synchronized AllTxi getNewGiveAllTxi(String username, int numbnerToGive){
+        AllTxi allTxi = new AllTxi();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT OPENTXOTABLE.*, USER.* FROM OPENTXOTABLE " +
+                    "INNER JOIN USER ON OPENTXOTABLE.PUBKEYHASH = USER.PUBKEYHASH " +
+                    "WHERE " +
+                    "USER.USERNAME = '" + username + "' " +
+                    "AND " +
+                    "OPENTXOTABLE.HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1) " +
+                    "ORDER BY OPENTXOTABLE.ID ASC;");
+            if (rs.isBeforeFirst()){
+//                ResultSetMetaData md = rs.getMetaData();
+//                int colCount = md.getColumnCount();
+//
+//                for (int i = 1; i <= colCount ; i++){
+//                    String col_name = md.getColumnName(i);
+//                    System.out.println(col_name);
+//                }
+                int i = 0;
+                int loop = 0;
+                int totalNeeded = 1;
+                while(i < totalNeeded && rs.next()){
+                    if (loop == 0){
+                        int reportReward = rs.getInt("REPORTREWARD");
+                        totalNeeded = reportReward + numbnerToGive;
+                        allTxi.setReportReward(reportReward);
+                        allTxi.setPubKey(rs.getString("PUBKEY"));
+                        allTxi.setPrivKey(rs.getString("PRIVKEY"));
+                    }
+                    allTxi.addTxi(new Txi(rs.getString("TXHASH"),
+                            rs.getInt("TXOINDEX")));
+                    i += rs.getInt("COINNUMBER");
+                    loop++;
+                }
+                // make sure have enough joules to spend
+                if (i >= totalNeeded){
+                    allTxi.setTotalJoules(i);
+                }else{
+                    allTxi = new AllTxi();
+                }
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allTxi;
+    }
+
+    public synchronized AllTxi getNewReportAllTxi(String username){
+        AllTxi allTxi = new AllTxi();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT OPENTXOTABLE.*, USER.* FROM OPENTXOTABLE " +
+                    "INNER JOIN USER ON OPENTXOTABLE.PUBKEYHASH = USER.PUBKEYHASH " +
+                    "WHERE " +
+                    "USER.USERNAME = '" + username + "' " +
+                    "AND " +
+                    "OPENTXOTABLE.HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1) " +
+                    "ORDER BY OPENTXOTABLE.ID ASC;");
+            if (rs.isBeforeFirst()){
+//                ResultSetMetaData md = rs.getMetaData();
+//                int colCount = md.getColumnCount();
+//
+//                for (int i = 1; i <= colCount ; i++){
+//                    String col_name = md.getColumnName(i);
+//                    System.out.println(col_name);
+//                }
+                int totalNeeded = rs.getInt("REPORTREWARD");
+                allTxi.setReportReward(totalNeeded);
+                allTxi.setPubKey(rs.getString("PUBKEY"));
+                allTxi.setPrivKey(rs.getString("PRIVKEY"));
+                allTxi.addTxi(new Txi(rs.getString("TXHASH"),
+                        rs.getInt("TXOINDEX")));
+                int i = rs.getInt("COINNUMBER");
+                while(i < totalNeeded && rs.next()){
+                    allTxi.addTxi(new Txi(rs.getString("TXHASH"),
+                            rs.getInt("TXHASH")));
+                    i += rs.getInt("COINNUMBER");
+                }
+                // make sure have enough joules to spend
+                if (i >= totalNeeded){
+                    allTxi.setTotalJoules(i);
+                }else{
+                    allTxi = new AllTxi();
+                }
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allTxi;
+    }
+
+    public synchronized boolean verifyAllTxi(AllTxi allTxi){
+        ArrayList<String> txList = new ArrayList<>();
+        ArrayList<String> pubKeyList = new ArrayList<>();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM OPENTXOTABLE " +
+                    "WHERE " +
+                    allTxi.getVerifySql() + " " +
+                    "AND TXHASH IN (SELECT TXHASH FROM MAPTABLE WHERE HEADERHASH IN " +
+                    "(SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1));");
+            if (rs.isBeforeFirst()){
+                while(rs.next()) {
+                    txList.add(rs.getString("TXHASH"));
+                    pubKeyList.add(rs.getString("PUBKEYHASH"));
+                }
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (allTxi.doTxListMatch(txList, pubKeyList)){
+            allTxi.setPubKey(getPubKeyFromHash(pubKeyList.get(0)));
+            return true;
+        }
+        return false;
     }
 
     public synchronized ArrayList<ArrayList> getSpendableTxo(String pubKeyHash, String txPerTweet,
@@ -1228,14 +1492,14 @@ public class SQLiteJDBC {
         return allTxiTxo;
     }
 
-    public synchronized String getPubKeyHashFromTxiHash(String txiHash, String txiTxoHash){
+    public synchronized String getPubKeyHashFromTxiHash(String txiHash, int txiTxoHash){
         String pubKey = "";
         Statement stmt = null;
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery( "SELECT TXOPUBKEYHASH FROM TXOTABLE WHERE TXHASH = '" +
-                    txiHash + "' AND TXOINDEX = '" + txiTxoHash + "';");
+                    txiHash + "' AND TXOINDEX = " + txiTxoHash + ";");
             if (rs.isBeforeFirst()){
                 pubKey = rs.getString("TXOPUBKEYHASH");
             }
@@ -1257,6 +1521,8 @@ public class SQLiteJDBC {
                     pubKeyHash + "';");
             if (rs.isBeforeFirst()){
                 pubKey = rs.getString("PUBKEY");
+            }else {
+                pubKey = "NA";
             }
             rs.close();
             stmt.close();
@@ -1264,6 +1530,25 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return pubKey;
+    }
+
+    public synchronized boolean havePubKey(String pubKey) {
+        boolean answer = false;
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT PUBKEY FROM PROFILETABLE WHERE PUBKEY = '" +
+                    pubKey + "';");
+            if (rs.isBeforeFirst()){
+                answer = true;
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return answer;
     }
 
     public synchronized ArrayList<String> getTxToAddToBlock(){
@@ -1287,6 +1572,287 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return txList;
+    }
+
+    public synchronized boolean addBlock(Block block){
+        //adding block, only need to add header and joulebase, rest is already in db
+        boolean added = addHeader(block.getHeader());
+        if (added){
+            //add JouleBase
+            added = addJouleBase(block.getJouleBase());
+        }
+        if (added){
+            // update the chain numbers in blockchain
+            updateChainNumbers();
+            //update convenience tables
+            mapNewBlock(block);
+            updateOpenTxoTable(block);
+        }
+        System.out.println("Block added");
+        return added;
+    }
+
+    private synchronized void updateOpenTxoTable(Block block){
+        Header header = block.getHeader();
+        addJouleBaseOpenTxo(block.getJouleBase(), header);
+        for (Tx tx : block.getAllTx().getAllTx()){
+            updateOpenTxo(tx, header);
+            removeOpenTxo(tx);
+        }
+    }
+
+    private synchronized void removeOpenTxo(Tx tx) {
+        //remove the txo from opentxo this tx is spending in its txi
+        for (Txi txi : tx.getAllTxi().getAllTxi()){
+            Statement stmt = null;
+            try {
+                stmt = c.createStatement();
+
+                String sql = "DELETE FROM OPENTXOTABLE WHERE TXHASH = '" + txi.getTxiHash() + "' AND TXOINDEX = " +
+                        txi.getTxiTxoIndex() + ";";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+                System.out.println("OpenTxo removed");
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void addOpenTxo(TxSuper tx) {
+        String txHash = tx.getHash();
+        for (Txo txo : tx.getAllTxo().getAllTxo()){
+            Statement stmt = null;
+            try {
+                stmt = c.createStatement();
+
+                String sql = "INSERT INTO OPENTXOTABLE (TXHASH, TXOINDEX, HEADERHASH, COINNUMBER, PUBKEYHASH) " +
+                        "VALUES (" +
+                        "'" + txHash + "', " + txo.getTxoIndex() + ", 'NA', " +
+                        txo.getJoulesToTxo() + ", '" + txo.getTxoPubKeyHash() + "');";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+                System.out.println("OpenTxo added");
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void addJouleBaseOpenTxo(TxSuper tx, Header header) {
+        String txHash = tx.getHash();
+        String headerHash = header.getHeaderHash();
+        for (Txo txo : tx.getAllTxo().getAllTxo()){
+            Statement stmt = null;
+            try {
+                stmt = c.createStatement();
+
+                String sql = "INSERT INTO OPENTXOTABLE (TXHASH, TXOINDEX, HEADERHASH, COINNUMBER, PUBKEYHASH) " +
+                        "VALUES (" +
+                        "'" + txHash + "', " + txo.getTxoIndex() + ", '" + headerHash + "', " +
+                        txo.getJoulesToTxo() + ", '" + txo.getTxoPubKeyHash() + "');";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+                System.out.println("JouleBase OpenTxo updated");
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private synchronized void updateOpenTxo(TxSuper tx, Header header) {
+        String headerHash = header.getHeaderHash();
+        for (Txo txo : tx.getAllTxo().getAllTxo()){
+            Statement stmt = null;
+            //System.out.println(headerHash + " " + txo.getTxHash() + " " + txo.getTxoIndex());
+            try {
+                stmt = c.createStatement();
+
+                String sql = "UPDATE OPENTXOTABLE SET HEADERHASH  = '" + headerHash + "' WHERE TXHASH = '"
+                        + txo.getTxHash() + "' AND TXOINDEX = " + txo.getTxoIndex() + ";";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+                System.out.println("OpenTxo tx updated");
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void mapNewBlock(Block block){
+        Header header = block.getHeader();
+        mapTx(block.getJouleBase(), header);
+        for (Tx tx : block.getAllTx().getAllTx()){
+            mapTx(tx, header);
+        }
+    }
+
+    private synchronized void mapTx(TxSuper tx, Header header){
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+
+            String sql = "INSERT INTO MAPTABLE (HEADERHASH, TXHASH, TXINDEX) VALUES (" +
+                    "'" + header.getHeaderHash() + "', " +
+                    "'" + tx.getHash() + "', " + tx.getTxIndex() + ");";
+            stmt.executeUpdate(sql);
+            stmt.close();
+            c.commit();
+            System.out.println("map added");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized boolean addHeader(Header header){
+        //add the header of the block
+        int entered = 0;
+        try {
+            PreparedStatement preparedStatement = null;
+            String sql = "INSERT OR IGNORE INTO BLOCKCHAIN (HEADERHASH, HEIGHT, " +
+                    "MERKLEROOT, PREVIOUSHASH, TARGET, NONCE, CHAIN) VALUES " +
+                    "('" + header.getHeaderHash() + "', " + header.getHeight() + ", " +
+                    "'" + header.getMerkleRoot() + "', '" + header.getPreviousHash() + "', '" + header.getTarget() +
+                    "', " + header.getNonce() + ", '1');";
+            preparedStatement = c.prepareStatement(sql);
+            entered = preparedStatement.executeUpdate();
+            preparedStatement.close();
+            c.commit();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return (entered == 1);
+    }
+
+
+    public synchronized boolean addTx(Tx tx){
+        //add tx
+        int entered = 0;
+        try {
+            PreparedStatement preparedStatement = null;
+            String sql = "INSERT OR IGNORE INTO TXTABLE (TXHASH, TYPE, UNLOCK, REPORTLENGTH, REPORT, NUMBERTOMINER) " +
+                    "VALUES " +
+                    "('" + tx.getHash() + "', " + tx.getType() + ", '" + tx.getSignature() +
+                    "', " + tx.getReportLength() + ", ?, " + tx.getNumberToMiner() + ");";
+            preparedStatement = c.prepareStatement(sql);
+            preparedStatement.setString(1, tx.getReport());
+            entered = preparedStatement.executeUpdate();
+            preparedStatement.close();
+            c.commit();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        if (entered == 1){
+            //add all txo of tx to db
+            addAllTxo(tx.getAllTxo());
+            //add all txi of tx to db
+            addAllTxi(tx.getAllTxi());
+            //remove txo referenced in txi from open txo
+            removeOpenTxo(tx);
+            //add txo to open txo table with a placeholder header hash
+            addOpenTxo(tx);
+            //change profiles if profile report
+            if (tx.getType() == 3){
+                updateProfileTable(tx);
+            }
+//            //add profile if pubKey unknown
+//            if (tx.getType() == 4){
+//                updateProfile(tx.getAllTxo().getAllTxo().get(0).getTxoPubKey());
+//            }
+        }
+        return (entered == 1);
+    }
+
+
+    private synchronized void updateProfileTable(Tx tx) {
+        ArrayList<String> nameAbout = convertReportToProfile(tx.getReport());
+        //get the first txi, they all have the same pubkey but this one will always exist
+        Txi txi = tx.getAllTxi().getTxi(0);
+        PreparedStatement stmt = null;
+        try {
+            stmt = c.prepareStatement("UPDATE PROFILETABLE SET NAME = ?, ABOUT = ? WHERE PUBKEYHASH = " +
+                    "(SELECT TXOPUBKEYHASH FROM TXOTABLE WHERE TXHASH = '" + txi.getTxiHash() +
+                    "' AND TXOINDEX = '" + txi.getTxiTxoIndex() + "');");
+            stmt.setString(1, nameAbout.get(0));
+            stmt.setString(2, nameAbout.get(1));
+            stmt.executeUpdate();
+            stmt.close();
+            c.commit();
+            System.out.println("ProfileTable updated");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private synchronized boolean addJouleBase(JouleBase base){
+        //add JouleBase
+        int entered = 0;
+        try {
+            PreparedStatement preparedStatement = null;
+            String sql = "INSERT OR IGNORE INTO TXTABLE (TXHASH, TYPE, UNLOCK, REPORTLENGTH, REPORT, NUMBERTOMINER) " +
+                    "VALUES " +
+                    "('" + base.getHash() + "', " + base.getType() + ", '" + base.getSignature() +
+                    "', " + base.getReportLength() + ", ?, " + base.getNumberToMiner() + ");";
+            preparedStatement = c.prepareStatement(sql);
+            preparedStatement.setString(1, base.getReport());
+            entered = preparedStatement.executeUpdate();
+            preparedStatement.close();
+            c.commit();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        if (entered == 1){
+            //add all txo of JouleBase to db
+            addAllTxo(base.getAllTxo());
+        }
+        return (entered == 1);
+    }
+
+    private synchronized void addAllTxi(AllTxi allTxi){
+        //add all new txi
+        for (Txi txi: allTxi.getAllTxi()){
+            Statement stmt = null;
+            try {
+                stmt = c.createStatement();
+
+                String sql = "INSERT INTO TXITABLE (TXHASH, TXIINDEX, TXIHASH, TXITXOINDEX) " +
+                        "VALUES ('" + txi.getTxHash() + "', " + txi.getTxiIndex() + ", '" +
+                        txi.getTxiHash() + "', " + txi.getTxiTxoIndex() + ");";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void addAllTxo(AllTxo allTxo){
+        //add all new txo
+        for (Txo txo: allTxo.getAllTxo()){
+            Statement stmt = null;
+            try {
+                stmt = c.createStatement();
+
+                String sql = "INSERT INTO TXOTABLE (TXHASH, NUMBERTOTXO, TXOINDEX, TXOPUBKEYHASH) " +
+                        "VALUES ('" + txo.getTxHash() + "', " + txo.getJoulesToTxo() + ", " + txo.getTxoIndex() +
+                        ", '" + txo.getTxoPubKeyHash() + "');";
+                stmt.executeUpdate(sql);
+                stmt.close();
+                c.commit();
+                //add pubkey mapping to profile table if not already there
+                updateProfile(txo.getTxoPubKey());
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+        }
     }
 
     public synchronized boolean addFullBlock(ArrayList<ArrayList> fullBlock){
@@ -1632,7 +2198,7 @@ public class SQLiteJDBC {
 
     public synchronized ArrayList<ArrayList> getFullTweet(String txHash){
         ArrayList<ArrayList> fullTweet = new ArrayList<>();
-        ArrayList<String> tx = getTx(txHash);
+        ArrayList<String> tx = getTxOld(txHash);
         ArrayList<ArrayList> txoList = getTxoList(txHash);
         fullTweet.add(tx);
         fullTweet.add(txoList);
@@ -1705,7 +2271,89 @@ public class SQLiteJDBC {
         return txi;
     }
 
-    private synchronized ArrayList<String> getTx(String txHash){
+    public synchronized Tx getTx(String txHash){
+        //get allTxi
+        AllTxi allTxi = getAllTxi(txHash);
+        //get allTxo
+        AllTxo allTxo = getAllTxo(txHash);
+
+        //get Tx
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH = '" + txHash + "';");
+            if (rs.isBeforeFirst()){
+                //construct Tx
+                Tx tx = new Tx(rs.getString("TXHASH"), rs.getInt("TYPE"),
+                        rs.getString("UNLOCK"), rs.getInt("REPORTLENGTH"),
+                        rs.getString("REPORT"), rs.getInt("NUMBERTOMINER"), allTxi, allTxo);
+                rs.close();
+                stmt.close();
+                return tx;
+            }else {
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        //TODO come up with better catch if something bad happens here
+        return new Tx();
+    }
+
+    private synchronized AllTxi getAllTxi(String txHash){
+        AllTxi allTxi = new AllTxi();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXITABLE WHERE TXHASH = '" + txHash + "';");
+            if (rs.isBeforeFirst()){
+                while (rs.next()){
+
+                    allTxi.addTxi(new Txi(txHash, rs.getInt("TXIINDEX"),
+                            rs.getString("TXIHASH"), rs.getInt("TXITXOINDEX")));
+                }
+                rs.close();
+                stmt.close();
+            }else {
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allTxi;
+    }
+
+    private synchronized AllTxo getAllTxo(String txHash){
+        AllTxo allTxo = new AllTxo();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXOTABLE LEFT OUTER JOIN PROFILETABLE ON " +
+                    "TXOTABLE.TXOPUBKEYHASH = PROFILETABLE.PUBKEYHASH WHERE TXHASH = '" + txHash + "';");
+            if (rs.isBeforeFirst()){
+                while (rs.next()){
+
+                    allTxo.addTxo(new Txo(txHash, rs.getInt("TXOINDEX"),
+                            rs.getInt("NUMBERTOTXO"), rs.getString("PUBKEY")));
+                }
+                rs.close();
+                stmt.close();
+            }else {
+                rs.close();
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return allTxo;
+    }
+
+    private synchronized ArrayList<String> getTxOld(String txHash){
         ArrayList<String> tx = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -1755,10 +2403,9 @@ public class SQLiteJDBC {
                 stmt.close();
                 return newTxList;
             }else {
-                newTxList.addAll(txList);
                 rs.close();
                 stmt.close();
-                return newTxList;
+                return txList;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -2009,17 +2656,17 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.TWEET, " +
+            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.REPORT, " +
                     "PROFILETABLE.NAME, PROFILETABLE.PUBKEYHASH " +
                     "FROM TXTABLE LEFT OUTER JOIN TXITABLE ON TXTABLE.TXHASH = TXITABLE.TXHASH " +
                     "LEFT OUTER JOIN TXOTABLE ON TXITABLE.TXIHASH = TXOTABLE.TXHASH " +
                     "LEFT OUTER JOIN PROFILETABLE ON TXOTABLE.TXOPUBKEYHASH = PROFILETABLE.PUBKEYHASH " +
-                    "WHERE TXTABLE.TYPE = '2' AND TXITABLE.TXITXOINDEX = TXOTABLE.TXOINDEX AND " +
+                    "WHERE TXTABLE.TYPE = 2 AND TXITABLE.TXITXOINDEX = TXOTABLE.TXOINDEX AND " +
                     "PROFILETABLE.PUBKEYHASH = '" + pubKeyHash + "' ORDER BY TXTABLE.ID DESC LIMIT 100 OFFSET " +
                     startingPoint + ";");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
-                    tweets.add(rs.getString("TWEET"));
+                    tweets.add(rs.getString("REPORT"));
                     tweets.add(rs.getString("TXHASH"));
                 }
             }
@@ -2037,12 +2684,12 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.TWEET, " +
+            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.REPORT, " +
                     "PROFILETABLE.NAME, PROFILETABLE.PUBKEYHASH " +
                     "FROM TXTABLE LEFT OUTER JOIN TXITABLE ON TXTABLE.TXHASH = TXITABLE.TXHASH " +
                     "LEFT OUTER JOIN TXOTABLE ON TXITABLE.TXIHASH = TXOTABLE.TXHASH " +
                     "LEFT OUTER JOIN PROFILETABLE ON TXOTABLE.TXOPUBKEYHASH = PROFILETABLE.PUBKEYHASH " +
-                    "WHERE TXTABLE.TYPE = '2' AND TXITABLE.TXITXOINDEX = TXOTABLE.TXOINDEX AND " +
+                    "WHERE TXTABLE.TYPE = 2 AND TXITABLE.TXITXOINDEX = TXOTABLE.TXOINDEX AND " +
                     "PROFILETABLE.PUBKEYHASH IN (SELECT FOLLOWPUBKEYHASH FROM FOLLOWTABLE WHERE USERNAME = '" +
                     username + "') ORDER BY TXTABLE.ID DESC LIMIT 100 OFFSET " + startingPoint + ";");
 
@@ -2050,7 +2697,7 @@ public class SQLiteJDBC {
                 while (rs.next()){
                     tweets.add(rs.getString("NAME"));
                     tweets.add(rs.getString("PUBKEYHASH"));
-                    tweets.add(rs.getString("TWEET"));
+                    tweets.add(rs.getString("REPORT"));
                     tweets.add(rs.getString("TXHASH"));
                 }
             }
@@ -2068,13 +2715,13 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TWEET FROM TXTABLE WHERE TXHASH = " +
+            ResultSet rs = stmt.executeQuery( "SELECT REPORT FROM TXTABLE WHERE TXHASH = " +
                     "(SELECT TXHASH FROM MAPTABLE WHERE TXINDEX = '0' AND HEADERHASH = " +
                     "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH = '" + txHash + "'));");
 
             if (rs.isBeforeFirst()){
                 while (rs.next()){
-                    String stringRecord = rs.getString("TWEET");
+                    String stringRecord = rs.getString("REPORT");
                     long longRecord = Long.valueOf(stringRecord);
                     System.out.println("db getTimeOfTweet longRecord: " + longRecord);
                     Date date = new Date(longRecord);
@@ -2173,8 +2820,8 @@ public class SQLiteJDBC {
         return profile;
     }
 
-    public synchronized ArrayList<String> getIpPort(String username, String networkName){
-        ArrayList<String> profile = new ArrayList<>();
+    public synchronized HashMap<String, String> getIpPort(String username, String networkName){
+        HashMap<String, String> ipPort = new HashMap<>();
         Statement stmt = null;
         try {
             c.setAutoCommit(false);
@@ -2183,9 +2830,9 @@ public class SQLiteJDBC {
                     username + "' AND NETWORKNAME = '" + networkName + "';");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
-                    profile.add(rs.getString("IP"));
-                    profile.add(String.valueOf(rs.getInt("PORT")));
-                    profile.add(rs.getString("NETNAME"));
+                   ipPort.put( "ip", rs.getString("IP"));
+                   ipPort.put("port", String.valueOf(rs.getInt("PORT")));
+                   ipPort.put("netName", rs.getString("NETNAME"));
                 }
             }
             rs.close();
@@ -2193,7 +2840,7 @@ public class SQLiteJDBC {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return profile;
+        return ipPort;
 
 //        if (networkType.equals("outside")){
 //            return getIpPortOutside(username);
@@ -2458,13 +3105,36 @@ public class SQLiteJDBC {
 //        }
     }
 
+    public synchronized long getTimeOfPastBlock(int height){
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT TWEET FROM TXTABLE WHERE TXHASH = " +
+                    "(SELECT TXHASH FROM MAPTABLE WHERE TXINDEX = 0 AND " +
+                    "HEADERHASH = (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1 " +
+                    "AND HEIGHT = " + height + " ));");
+            if (rs.isBeforeFirst()){
+                long time = Long.parseLong(rs.getString("TWEET"));
+                rs.close();
+                stmt.close();
+                return time;
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public synchronized long getTimeOfPastBlock(ArrayList<String> blockInfo, int heightDifference){
 
         if (heightDifference == 0){
             return timeOfBlock(blockInfo.get(1));
         }
         int rightHeight = Integer.valueOf(blockInfo.get(0)) - heightDifference;
-        ArrayList<String> blocksAtRightHeight = getBlocksAtHeight(rightHeight);
+        ArrayList<String> blocksAtRightHeight = getHeadersAtHeight(rightHeight);
         System.out.println("db.getTimeOfPastBlock blocksAtRightHeight: " + blocksAtRightHeight);
 
         for (String headerHash: blocksAtRightHeight){
@@ -2476,7 +3146,7 @@ public class SQLiteJDBC {
         return 0;
     }
 
-    private synchronized ArrayList<String> getBlocksAtHeight(int height){
+    private synchronized ArrayList<String> getHeadersAtHeight(int height){
         ArrayList<String> blocks = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -2540,16 +3210,16 @@ public class SQLiteJDBC {
         return String.valueOf(coinsTotal);
     }
 
-    public synchronized String getTxPerTweet(String username){
-        String coinPerTweet = "1";
+    public synchronized int getTxPerReport(String username){
+        int reportReward = 1;
         Statement stmt = null;
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT COINPERTWEET FROM USER WHERE USERNAME = '" + username + "';");
+            ResultSet rs = stmt.executeQuery( "SELECT REPORTREWARD FROM USER WHERE USERNAME = '" + username + "';");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
-                    coinPerTweet = rs.getString("COINPERTWEET");
+                    reportReward = rs.getInt("REPORTREWARD");
                 }
             }
             rs.close();
@@ -2557,7 +3227,7 @@ public class SQLiteJDBC {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return coinPerTweet;
+        return reportReward;
     }
 
     public synchronized void updateTxPerTweet(String username, String newReward){
@@ -2636,5 +3306,89 @@ public class SQLiteJDBC {
 
         int totalNeeded = Integer.valueOf(txPerTweet) + Integer.valueOf(giveNumber);
         return getSpendableTxo(pubKeyHash, String.valueOf(totalNeeded), miningInfo);
+    }
+
+    public synchronized AllTx getNewMinerBlockAllTx(){
+        AllTx allTx = new AllTx();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH NOT IN " +
+                    "(SELECT TXHASH FROM MAPTABLE) AND TYPE != '1';");
+            if (rs.isBeforeFirst()){
+                while(rs.next()){
+                    allTx.addTx(new Tx(
+                            rs.getString("TXHASH"),
+                            rs.getInt("TYPE"),
+                            rs.getString("UNLOCK"),
+                            rs.getInt("REPORTLENGTH"),
+                            rs.getString("REPORT"),
+                            rs.getInt("NUMBERTOMINER")
+                    ));
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        //tell each tx its index in the list
+        allTx.setTxIndex();
+        return allTx;
+    }
+
+    public Header getHighestHeader() {
+        Header header = new Header();
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE " +
+                    "HEIGHT = (SELECT MAX(HEIGHT) FROM BLOCKCHAIN) " +
+                    "AND CHAIN = 1;");
+            if (rs.isBeforeFirst()){
+                header = new Header(
+                        rs.getString("HEADERHASH"),
+                        rs.getInt("HEIGHT"),
+                        rs.getString("MERKLEROOT"),
+                        rs.getString("PREVIOUSHASH"),
+                        rs.getString("TARGET"),
+                        rs.getInt("NONCE")
+                        );
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return header;
+    }
+
+    public boolean checkBlockHeader(String previousHash, int height) {
+        boolean exists = false;
+        Statement stmt = null;
+        try {
+            c.setAutoCommit(false);
+            stmt = c.createStatement();
+            ResultSet rs = stmt.executeQuery( "SELECT ID FROM BLOCKCHAIN WHERE " +
+                    "HEIGHT = " + height + " " +
+                    "AND HEADERHASH = '" + previousHash + "';");
+            if (rs.isBeforeFirst()){
+                exists = true;
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return exists;
+    }
+
+    public void finishAllTx(AllTx allTx) {
+        for (Tx tx : allTx.getAllTx()){
+            tx.setAllTxo(getAllTxo(tx.getHash()));
+            tx.setAllTxi(getAllTxi(tx.getHash()));
+        }
     }
 }

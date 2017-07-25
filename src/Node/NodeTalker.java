@@ -3,6 +3,7 @@ package Node;
 import DB.SQLiteJDBC;
 import ReadWrite.MathStuff;
 import ReadWrite.Verify;
+import Structures.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -239,16 +240,15 @@ public class NodeTalker {
 
         }else if (code.equals("giveFriends")){
             db.addFriends(words, nameOfNetwork);
-        }else if (code.equals("block")){
-            //TODO Do I need this?
         }else if (code.equals("newBlock")){
             nb.stopMiner();
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
-            boolean isVerified = new Verify(db).isBlockVerified(fullBlock, nb);
+            //ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
+            Block block = convertWireToBlock(words);
+            boolean isVerified = new Verify(db).isBlockVerified(block, nb);
             if (isVerified){
-                nb.addHeardBlock(fullBlock, this);
+                nb.addHeardBlock(block, this);
                 updateBlockHeight();
                 sendString(getBlockHeight());
                 nb.startMiner();
@@ -263,13 +263,13 @@ public class NodeTalker {
             setPing("pong");
             System.out.println(socket.getInetAddress() + " pong received");
 
-        }else if (code.equals("newTweet")){
+        }else if (code.equals("newTx")){
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            ArrayList<ArrayList> fullTweet = convertToFullTweet(words);
-            boolean isVerified = new Verify(db).isTweetVerified(fullTweet);
+            Tx report = convertWireToTx(words);
+            boolean isVerified = new Verify(db).verifyTx(report);
             if (isVerified){
-                nb.addFullTweet(fullTweet, this);
+                nb.addTx(report, this);
             }
         }else if (code.equals("getBlock")){
             updateBlockHeight();
@@ -277,13 +277,14 @@ public class NodeTalker {
                 giveBlock(Integer.valueOf(words.get(1)));
             }
         }else if (code.equals("giveBlock")){
-            //TODO update this for multiple parties, they will come out of order
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
-            boolean isVerified = new Verify(db).isBlockVerified(fullBlock, nb);
+            //ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
+            Block block = convertWireToBlock(words);
+            boolean isVerified = new Verify(db).isBlockVerified(block, nb);
             if (isVerified){
-                nb.addHeardGiveBlock(fullBlock);
+                //nb.addHeardGiveBlock(fullBlock);
+                db.addBlock(block);
                 updateBlockHeight();
                 if(blockHeight == otherBlockHeight){
                     nb.startMiner();
@@ -342,6 +343,31 @@ public class NodeTalker {
         sendString(whole);
     }
 
+    private Block convertWireToBlock(ArrayList<String> words){
+        Header header = new Header(words.get(0), Integer.valueOf(words.get(1)), words.get(2), words.get(3),
+                words.get(4), Integer.valueOf(words.get(5)));
+        Txo txo = new Txo(words.get(6), Integer.valueOf(words.get(12)), Integer.valueOf(words.get(13)), words.get(14));
+        AllTxo allTxo = new AllTxo();
+        allTxo.addTxo(txo);
+        JouleBase base = new JouleBase(words.get(6), Integer.valueOf(words.get(7)),
+                words.get(8), Integer.valueOf(words.get(9)), words.get(10),
+                Integer.valueOf(words.get(11)), allTxo);
+        AllTx allTx = new AllTx();
+        // add each tx in list to allTx
+        if (words.size() > 15){
+            int i = 15;
+            while(i < words.size()){
+                //allTx.addWireTx(words.get(i));
+                //get tx from db to add
+                allTx.addTx(db.getTx(words.get(i)));
+                i++;
+            }
+        }
+        Block block = new Block(header, base, allTx);
+        block.printBlock();
+        return block;
+    }
+
     private ArrayList<ArrayList> convertToFullBlock(ArrayList<String> words){
         ArrayList<ArrayList> fullBlock = new ArrayList<>();
         ArrayList<String> header = new ArrayList<>();
@@ -370,6 +396,30 @@ public class NodeTalker {
         fullBlock.add(txToAdd);
 
         return fullBlock;
+    }
+
+    private Tx convertWireToTx(ArrayList<String> words){
+        String hash  = words.get(0);
+        Tx tx  = new Tx(hash, Integer.valueOf(words.get(1)), words.get(2),
+                Integer.valueOf(words.get(3)), words.get(4), Integer.valueOf(words.get(5)));
+
+        int numberOfTxo = Integer.valueOf(words.get(6));
+        AllTxo allTxo = tx.getAllTxo();
+        for (int i = 0; i < numberOfTxo; i++){
+            Txo txo = new Txo(hash, Integer.valueOf(words.get(7 + (i * 3))),
+                    Integer.valueOf(words.get(7 + (i * 3) + 1)), words.get(7 + (i * 3) + 2));
+            allTxo.addTxo(txo);
+        }
+
+        int homeForTxi = 7 + (numberOfTxo * 3);
+        int numberOfTxi = Integer.valueOf(words.get(homeForTxi));
+        AllTxi allTxi = tx.getAllTxi();
+        for (int i = 0; i < numberOfTxi; i++){
+            Txi txi = new Txi(hash, Integer.valueOf(words.get(homeForTxi + 1 + (i * 3))),
+                    words.get(homeForTxi + 1 + (i * 3) + 1),  Integer.valueOf(words.get(homeForTxi + 1 + (i * 3) + 2)));
+            allTxi.addTxi(txi);
+        }
+        return tx;
     }
 
     private ArrayList<ArrayList> convertToFullTweet(ArrayList<String> words){
@@ -475,27 +525,37 @@ public class NodeTalker {
     }
 
     public void giveBlock(int height){
-        ArrayList<ArrayList> allFullBlocks = db.getAllFullBlocks(height);
-        if (allFullBlocks.isEmpty()){
+        ArrayList<Block> allBlocks = db.getAllBlocks(height);
+        if (allBlocks.isEmpty()){
             return;
         }
-        for (ArrayList<ArrayList> fullBlock : allFullBlocks){
-            ArrayList<String> wireBlock = nb.convertFullBlockForWire(fullBlock);
-            System.out.println("Talker giveBlock wireBlock: " + wireBlock);
-            if (fullBlock.size() == 3 && !fullBlock.get(2).isEmpty()){
-                ArrayList<ArrayList> fullTweetList = new ArrayList<>();
-                for (String tx: (ArrayList<String>)fullBlock.get(2)){
-                    //TODO Convert to one db call
-                    fullTweetList.add(db.getFullTweet(tx));
-                }
-                for (ArrayList<ArrayList> fullTweet: fullTweetList){
-                    ArrayList<String> wireTweet = nb.convertFullTweetForWire(fullTweet);
-                    sendGiveTweet(wireTweet);
-                }
-            }
+        for (Block block : allBlocks){
+            ArrayList<String> wireBlock = block.convertBlockForWire();
             sendGiveBlock(wireBlock);
         }
     }
+
+//    public void giveBlockold(int height){
+//        ArrayList<ArrayList> allFullBlocks = db.getAllFullBlocks(height);
+//        if (allFullBlocks.isEmpty()){
+//            return;
+//        }
+//        for (ArrayList<ArrayList> fullBlock : allFullBlocks){
+//            ArrayList<String> wireBlock = nb.convertFullBlockForWire(fullBlock);
+//            System.out.println("Talker giveBlock wireBlock: " + wireBlock);
+//            if (fullBlock.size() == 3 && !fullBlock.get(2).isEmpty()){
+//                ArrayList<ArrayList> fullTweetList = new ArrayList<>();
+//                for (String tx: (ArrayList<String>)fullBlock.get(2)){
+//                    fullTweetList.add(db.getFullTweet(tx));
+//                }
+//                for (ArrayList<ArrayList> fullTweet: fullTweetList){
+//                    ArrayList<String> wireTweet = nb.convertFullTweetForWire(fullTweet);
+//                    sendGiveTweet(wireTweet);
+//                }
+//            }
+//            sendGiveBlock(wireBlock);
+//        }
+//    }
 
 
     private String getFriends(){
@@ -517,7 +577,7 @@ public class NodeTalker {
     }
 
     public void sendTweet(ArrayList<String> fullTweet){
-        String whole = "newTweet";
+        String whole = "newTx";
         for (String piece : fullTweet){
             whole = whole + "," + piece;
         }
@@ -525,7 +585,7 @@ public class NodeTalker {
     }
 
     public void sendGiveTweet(ArrayList<String> fullTweet){
-        String whole = "giveTweet";
+        String whole = "giveTx";
         for (String piece : fullTweet){
             whole = whole + "," + piece;
         }
@@ -533,6 +593,7 @@ public class NodeTalker {
     }
 
     public void sendNewBlock(ArrayList<String> fullBlock){
+        System.out.println("sending block");
         String whole = "newBlock";
         for (String piece : fullBlock){
             whole = whole + "," + piece;

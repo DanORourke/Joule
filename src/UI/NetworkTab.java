@@ -3,6 +3,8 @@ package UI;
 import DB.SQLiteJDBC;
 import Node.NodeBase;
 import ReadWrite.MathStuff;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -17,8 +19,11 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+
 
 public class NetworkTab extends Tab {
     //tab for either inside network or outside network depending on network name
@@ -104,7 +109,11 @@ public class NetworkTab extends Tab {
                         ipField2.getText() + "." + ipField3.getText();
                 if (new MathStuff().isValidIp(myIp, networkName) && db.updateMyIp(username, myIp, networkName)){
                     nb.updateMyIp(myIp, networkName);
-                    resetServerLabel();
+                    //delay resetting the server label until the old server has been replaced
+                    Timeline timeline = new Timeline(new KeyFrame(
+                            Duration.millis(2500),
+                            ae -> resetServerLabel()));
+                    timeline.play();
                     ipField0.clear();
                     ipField1.clear();
                     ipField2.clear();
@@ -136,7 +145,11 @@ public class NetworkTab extends Tab {
                 if (new MathStuff().isValidPort(portField.getText()) &&
                         db.updateMyPort(username, Integer.valueOf(portField.getText()), networkName)){
                     nb.updateMyPort(Integer.valueOf(portField.getText()), networkName);
-                    resetServerLabel();
+                    //delay resetting the server label until the old server has been replaced
+                    Timeline timeline = new Timeline(new KeyFrame(
+                            Duration.millis(2500),
+                            ae -> resetServerLabel()));
+                    timeline.play();
                     portField.clear();
                     target.setFill(Color.BLACK);
                     target.setText("Port Updated");
@@ -262,14 +275,11 @@ public class NetworkTab extends Tab {
     }
 
     private void resetServerLabel(){
-        ArrayList<String> ipPort = db.getIpPort(username, networkName);
+        HashMap<String, String> ipPort = db.getIpPort(username, networkName);
         String dbText;
-        if (ipPort.size() == 3){
-            dbText = "DB IP: " + ipPort.get(0) + " Port: " + ipPort.get(1) +
-            " NetName: " + ipPort.get(2);
-        }else{
-            dbText = "DB IP: NA Port: 0 NetName: NA";
-        }
+        dbText = "DB IP: " + ipPort.get("ip") + " Port: " + ipPort.get("port") +
+        " NetName: " + ipPort.get("netName");
+
         dbLabel.setText(dbText);
 
         ArrayList<String> serverInfo = nb.getServerInfo(networkName);

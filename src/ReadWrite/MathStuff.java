@@ -109,7 +109,7 @@ public class MathStuff {
         return salt;
     }
 
-    public String signTxo(String privKey, String merkle){
+    public String signTx(String privKey, String merkle){
         try {
             byte[] clear = Base64.getDecoder().decode(privKey);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(clear);

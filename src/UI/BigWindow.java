@@ -157,8 +157,12 @@ public class BigWindow {
             @Override
             public void handle(ActionEvent e) {
                 String pubKey = giveFullField.getText();
-                String number = giveNumberField.getText();
-                boolean success = nb.giveTx(username, pubKey, number);
+                String numberString = giveNumberField.getText();
+                boolean success = false;
+                if (new MathStuff().isNumber(numberString)){
+                    int number = Integer.valueOf(numberString);
+                    success = nb.giveTx(username, pubKey, number);
+                }
                 if (success){
                     giveTarget.setFill(Color.BLACK);
                     giveTarget.setText("Joules given");
@@ -188,11 +192,14 @@ public class BigWindow {
             @Override
             public void handle(ActionEvent e) {
                 String pubKeyHash = giveHashField.getText();
-                String number = giveNumberField.getText();
-                boolean success = nb.giveTx(username, pubKeyHash, number);
-                if (success){
+                String numberString = giveNumberField.getText();
+                boolean success = false;
+                if (new MathStuff().isNumber(numberString)){
+                    int number = Integer.valueOf(numberString);
+                    success = nb.giveTx(username, pubKeyHash, number);
+                }                if (success){
                     giveTarget.setFill(Color.BLACK);
-                    giveTarget.setText("TxInfo given");
+                    giveTarget.setText("Joules given");
                     spendTextLabel.setText(getSpendTextLabelText());
                     txInfoData.clear();
                     txInfoData.addAll(fillTxTable());
@@ -272,7 +279,7 @@ public class BigWindow {
     }
 
     private String getPerTxLabelText(){
-        return "Joules Rewarded Per Report: " + db.getTxPerTweet(username);
+        return "Joules Rewarded Per Report: " + db.getTxPerReport(username);
     }
 
     private String getSpendTextLabelText(){
@@ -452,8 +459,8 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
-                String tweet = myTweetTweetArea.getText();
-                boolean success = nb.addTweet(tweet, username, null);
+                String report = myTweetTweetArea.getText();
+                boolean success = nb.addReport(report, username);
                 if (success){
                     actionTarget.setFill(Color.BLACK);
                     actionTarget.setText("Report Sent");
@@ -1536,9 +1543,10 @@ public class BigWindow {
 
             @Override
             public void handle(ActionEvent e) {
-                String tweet = feedTweetArea.getText();
-                boolean success = nb.addTweet(tweet, username, null);
-                if (success){
+                String report = feedTweetArea.getText();
+                //boolean success = nb.addTweet(report, username, null);
+                boolean added = nb.addReport(report, username);
+                if (added){
                     actionTarget.setFill(Color.BLACK);
                     actionTarget.setText("Report Sent");
                     if (myLastTweetNumber == 0){
@@ -1552,7 +1560,7 @@ public class BigWindow {
                     actionTarget.setFill(Color.FIREBRICK);
                     actionTarget.setText("ERROR");
                 }
-                System.out.println("Window succes = " + success);
+                System.out.println("Window succes = " + added);
                 feedTweetArea.clear();
             }
         });

@@ -3,78 +3,29 @@ package Structures;
 import java.util.ArrayList;
 
 public class Block {
-    private String headerHash;
-    private int height;
-    private String merkleRoot;
-    private String previousHash;
-    private String target;
-    private int nonce;
-    private int chain;
-    private Tx jouleBase;
+    private Header header;
+    private JouleBase jouleBase;
     private AllTx allTx;
 
     public Block(){
+        header = new Header();
+        jouleBase = new JouleBase();
         allTx = new AllTx();
     }
 
-    public String getHeaderHash() {
-        return headerHash;
-    }
+    public Block(Header header, JouleBase base, AllTx allTx){
+        this.header = header;
+        this.jouleBase = base;
+        this.allTx = allTx;
 
-    public void setHeaderHash(String headerHash) {
-        this.headerHash = headerHash;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public String getMerkleRoot() {
-        return merkleRoot;
-    }
-
-    public void setMerkleRoot(String merkleRoot) {
-        this.merkleRoot = merkleRoot;
-    }
-
-    public String getPreviousHash() {
-        return previousHash;
-    }
-
-    public void setPreviousHash(String previousHash) {
-        this.previousHash = previousHash;
-    }
-
-    public String getTarget() {
-        return target;
-    }
-
-    public void setTarget(String target) {
-        this.target = target;
-    }
-
-    public int getNonce() {
-        return nonce;
-    }
-
-    public void setNonce(int nonce) {
-        this.nonce = nonce;
-    }
-
-    public int getChain() {
-        return chain;
-    }
-
-    public void setChain(int chain) {
-        this.chain = chain;
     }
 
     public AllTx getAllTx() {
         return allTx;
+    }
+
+    public void setAllTx(AllTx allTx){
+        this.allTx = allTx;
     }
 
     public void setAllReports(ArrayList<Tx> allTx) {
@@ -97,15 +48,43 @@ public class Block {
         return allTx.getTx(index);
     }
 
-    public Tx getJouleBaseTx(){
+    public JouleBase getJouleBase(){
         return jouleBase;
     }
 
-    public void setJouleBase(Tx jouleBase){
+    public void setJouleBase(JouleBase jouleBase){
         this.jouleBase = jouleBase;
     }
 
     public long getTimeOfBlock(){
-        return Long.valueOf(jouleBase.getReport());
+        return jouleBase.getTime();
+    }
+
+    public Header getHeader() {
+        return header;
+    }
+
+    public void setHeader(Header header) {
+        this.header = header;
+    }
+
+    public boolean correctMerkle() {
+        return header.getMerkleRoot().equals(allTx.calcMerkleRoot(jouleBase.getHash()));
+    }
+
+    public ArrayList<String> convertBlockForWire(){
+        //convert the obect into a list of strings, will add together when sending
+        ArrayList<String> wireBlock = new ArrayList<>();
+        wireBlock.addAll(header.getWireList());
+        wireBlock.addAll(jouleBase.getWireList());
+        //only give the hash for tx, not whole thing
+        wireBlock.addAll(allTx.getBlockWireList());
+        return wireBlock;
+    }
+
+    public void printBlock(){
+        header.printHeader();
+        jouleBase.printJouleBase();
+        allTx.printAllTx();
     }
 }

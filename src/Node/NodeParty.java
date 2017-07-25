@@ -53,9 +53,8 @@ public class NodeParty implements Runnable {
 
     private void callFriends(ArrayList<ArrayList> friends, ArrayList<NodeTalker> talkers,
                              int maxSize, String networkType){
-        int j = talkers.size();
         if (!friends.isEmpty()){
-            for(int i = 0; i < friends.size() && j < maxSize; i++){
+            for(int i = 0; i < friends.size() && talkers.size() < maxSize; i++){
                 ArrayList<String> friend = friends.get(i);
                 String friendIp = friend.get(0);
                 int friendPort = Integer.valueOf(friend.get(1));
@@ -67,7 +66,6 @@ public class NodeParty implements Runnable {
                         socket.connect(new InetSocketAddress(friendIp, friendPort), timeout);
                         NodeTalker talker = new NodeTalker(socket, db, nb, "talk", networkType);
                         nb.addTalker(talker, networkType);
-                        j++;
                     } catch (BindException e) {
                         System.out.println("NodeParty callFriends cannot bind to port");
                     } catch (ConnectException e) {

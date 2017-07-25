@@ -4,6 +4,9 @@ import DB.SQLiteJDBC;
 import Mining.Miner;
 import ReadWrite.Construct;
 import ReadWrite.MathStuff;
+import Structures.Block;
+import Structures.Tx;
+import Structures.Txi;
 import UI.BigWindow;
 import UI.Friend;
 
@@ -51,14 +54,9 @@ public class NodeBase {
         updateBlockHeight();
         this.blockChainHeight = 0;
         this.gettingBlocks = false;
-        setIpPort(networkType, insideName);
+        this.networkType = networkType;
+        this.nameOfInsideNetwork = insideName;
 
-        //start contacting others
-        callEnoughFriends();
-        //start listening for others
-        startNewServer(networkType);
-        //setup periodic calling of friends
-        scheduleNetworkCheck(networkType);
     }
 
     private void scheduleNetworkCheck(String networkType){
@@ -166,46 +164,75 @@ public class NodeBase {
         }, 2*1000);
     }
 
-    private void setIpPort(String networkType, String insideName){
-        //set network variables
-        this.networkType = networkType;
-        this.nameOfInsideNetwork = insideName;
+    private void setDefaultInsideIpPort(){
+        insideNetName = "NA";
+        insideIp = "NA";
+        insidePort = 0;
+    }
 
+    private void setDefaultOutsideIpPort(){
+        outsideIp = "NA";
+        outsidePort = 0;
+        outsideNetName = "NA";
+    }
+
+    private void setIpPort(String networkType, boolean firstTImeThrough){
+        //set network variables
         if (username == null){
-            outsideIp = "NA";
-            outsidePort = 0;
-            insideNetName = "NA";
-            insideIp = "NA";
-            insidePort = 0;
-            outsideNetName = "NA";
-        }else if (networkType.equals("outside")){
-            ArrayList<String> ipPort = db.getIpPort(username, "outside");
-            if (ipPort.size() == 3){
-                outsideIp = ipPort.get(0);
-                outsidePort = Integer.valueOf(ipPort.get(1));
-                outsideNetName = ipPort.get(2);
+            setDefaultOutsideIpPort();
+            setDefaultInsideIpPort();
+        }else if (networkType.equals("outside")) {
+            HashMap<String, String> ipPort = db.getIpPort(username, networkType);
+            if (ipPort.size() == 0){
+                setDefaultOutsideIpPort();
+                return;
+            }
+            if (ipPort.get("ip") != null) {
+                outsideIp = ipPort.get("ip");
+            } else {
+                outsideIp = "NA";
+            }
+
+            outsidePort = Integer.valueOf(ipPort.get("port"));
+
+            if (ipPort.get("netName") != null) {
+                outsideNetName = ipPort.get("netName");
+            } else {
+                outsideNetName = "NA";
+            }
+            if (firstTImeThrough){
+                setDefaultInsideIpPort();
             }
         }else if (networkType.equals("inside")){
-            ArrayList<String> ipPort = db.getIpPort(username, nameOfInsideNetwork);
-            if (ipPort.size() == 3){
-                insideIp = ipPort.get(0);
-                insidePort = Integer.valueOf(ipPort.get(1));
-                insideNetName = ipPort.get(2);
+            HashMap<String, String> ipPort = db.getIpPort(username, nameOfInsideNetwork);
+            if (ipPort.size() == 0){
+                setDefaultInsideIpPort();
+                return;
             }
-        } else {
-            ArrayList<String> ipPortOutside = db.getIpPort(username, "outside");
-            if (ipPortOutside.size() == 3){
-                outsideIp = ipPortOutside.get(0);
-                outsidePort = Integer.valueOf(ipPortOutside.get(1));
-                outsideNetName = ipPortOutside.get(2);
+            if (ipPort.get("ip") != null){
+                insideIp = ipPort.get("ip");
+            }else {
+                insideIp = "NA";
             }
-            ArrayList<String> ipPortInside = db.getIpPort(username, nameOfInsideNetwork);
-            if (ipPortInside.size() == 3){
-                insideIp = ipPortInside.get(0);
-                insidePort = Integer.valueOf(ipPortInside.get(1));
-                insideNetName = ipPortInside.get(2);
+
+            insidePort = Integer.valueOf(ipPort.get("port"));
+
+            if (ipPort.get("netName") != null){
+                insideNetName = ipPort.get("netName");
+            }else {
+                insideNetName = "NA";
             }
+            if (firstTImeThrough){
+                setDefaultOutsideIpPort();
+            }
+        }else if (networkType.equals("both")){
+            setIpPort("outside", false);
+            setIpPort(nameOfInsideNetwork, false);
         }
+
+        System.out.println("outsideIp: " + outsideIp + " outsidePort: " + outsidePort +
+                " outsideNetNam: " + outsideNetName + " insideIp: " + insideIp + " insidePort: " + insidePort +
+                " insideNetName: " + insideNetName);
     }
 
     private void setUsername(String username){
@@ -328,6 +355,8 @@ public class NodeBase {
             myPort = insidePort;
             talkers = insideTalkers;
         }
+//        System.out.println("friendIp: " + friendIp + " friendPort: " + friendPort +
+//                " myIp: " + myIp + " myPort: " + myPort);
         if (friendIp.equals(myIp) && friendPort == myPort){
             return false;
         }
@@ -396,44 +425,166 @@ public class NodeBase {
         }
     }
 
-    public boolean addTweet(String tweet, String user, NodeTalker talker){
-        //TODO construct tweet, verify, display
-        if (tweet.length() == 0){
+    public boolean addReport(String report, String user){
+        //check if report is not empty
+        if (report.length() == 0){
             return false;
         }
-        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(user, tweet, "2");
-        System.out.println("NodeBase addTweet() fullTweet: " + fullTweet);
+        //construct report
+        Tx tx = new Construct(db).constructReportTx(report, user);
+        //return false if tx cannot be formed
+        if (!tx.isProper()){
+            System.out.println("Tx not properly formed");
+            return false;
+        }
+        //return false if not properly entered into the db
+        if (!db.addTx(tx)){
+            System.out.println("Tx cannot be entered into db");
+            return false;
+        }
+        //send it to others
+        propagateTx(tx, null);
+        return true;
+    }
+
+//    public boolean addTweet(String tweet, String user, NodeTalker talker){
+//        if (tweet.length() == 0){
+//            return false;
+//        }
+//        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(user, tweet, "2");
+//        System.out.println("NodeBase addTweet() fullTweet: " + fullTweet);
+//        if (fullTweet.isEmpty()){
+//            return false;
+//        }
+//        boolean success = db.addFullTweet(fullTweet);
+//        System.out.println("addTweet success = " + success);
+//        if (!success){
+//            return false;
+//        }else{
+//            propagateTweet(fullTweet, talker);
+//            System.out.println("nb addTweet proptweet");
+//            return true;
+//        }
+//    }
+    public boolean updateMyProfile(String profileReport){
+        //check if report is not empty
+        if (profileReport.length() == 0){
+            return false;
+        }
+        //construct report
+        Tx tx = new Construct(db).constructProfileTx(profileReport, username);
+        //return false if tx cannot be formed
+        if (!tx.isProper()){
+            System.out.println("Tx not properly formed");
+            return false;
+        }
+        //return false if not properly entered into the db
+        if (!db.addTx(tx)){
+            System.out.println("Tx cannot be entered into db");
+            return false;
+        }
+        //send it to others
+        propagateTx(tx, null);
+        return true;
+    }
+
+    public boolean updateMyProfileold(String profileTweet){
+        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(username, profileTweet, "3");
+        System.out.println("NodeBase addProfileTweet() fullTweet: " + fullTweet);
         if (fullTweet.isEmpty()){
             return false;
         }
         boolean success = db.addFullTweet(fullTweet);
-        System.out.println("addTweet success = " + success);
+        System.out.println("updateMyProfile success = " + success);
         if (!success){
             return false;
         }else{
-            propagateTweet(fullTweet, talker);
-            System.out.println("nb addTweet proptweet");
+            propagateTweet(fullTweet, null);
+            System.out.println("nb updateMyProfile proptweet");
             return true;
         }
     }
 
-    public void addFullTweet(ArrayList<ArrayList> fullTweet, NodeTalker talker){
-        System.out.println("nb.addFullTweet fullTweet: " + fullTweet);
-        if (db.addFullTweet(fullTweet)){
-            propagateTweet(fullTweet, talker);
-            if (window != null && fullTweet.get(0).get(1).equals("2")){
-                String txiHash = ((ArrayList<String>)fullTweet.get(2).get(0)).get(1);
-                String txiTxoIndex = ((ArrayList<String>)fullTweet.get(2).get(0)).get(2);
+    public boolean giveTx(String username, String pubKey, int number) {
+        //construct report
+        Tx tx = new Construct(db).constructGiveTx(username, pubKey, number);
+        //return false if tx cannot be formed
+        if (!tx.isProper()){
+            System.out.println("Tx not properly formed");
+            return false;
+        }
+        //return false if not properly entered into the db
+        if (!db.addTx(tx)){
+            System.out.println("Tx cannot be entered into db");
+            return false;
+        }
+        //send it to others
+        propagateTx(tx, null);
+        return true;
+    }
+
+    public boolean giveTxold(String username, String pubKey, String number) {
+        ArrayList<ArrayList> fullTweet = new Construct(db).constructGiveTxold(username, pubKey, number);
+        System.out.println("NodeBase giveTx fullTweet: " + fullTweet);
+        if (fullTweet.isEmpty()){
+            return false;
+        }
+        boolean success = db.addFullTweet(fullTweet);
+        System.out.println("giveTx success = " + success);
+        if (!success){
+            return false;
+        }else{
+            propagateTweet(fullTweet, null);
+            System.out.println("nb giveTx proptweet");
+            return true;
+        }
+    }
+
+
+    public void addTx(Tx tx, NodeTalker talker){
+        //add tx to the database
+        if (db.addTx(tx)){
+            //send the tx to nodes other than the one that sent it
+            propagateTx(tx, talker);
+            //check if tx needs to be displayed
+            if (window != null && tx.getType() == 2){
+                //get pubkey of sender
+                Txi txi = tx.getAllTxi().getAllTxi().get(0);
+                String txiHash = txi.getTxiHash();
+                int txiTxoIndex = txi.getTxiTxoIndex();
                 String tweeterPubKeyHash = db.getPubKeyHashFromTxiHash(txiHash, txiTxoIndex);
+                //check if user follows this pubkey
                 boolean doIFollow = db.doIFollow(tweeterPubKeyHash, username);
                 System.out.println("nb.addFullTweet tweeterHash: " + tweeterPubKeyHash + " doIfollow: " + doIFollow);
                 if (doIFollow){
+                    //get pubkey user name
                     String name = db.getName(tweeterPubKeyHash);
-                    window.addTweet(name, (String)fullTweet.get(0).get(4));
+                    //display report
+                    window.addTweet(name, tx.getReport());
                 }
             }
         }
     }
+
+
+
+//    public void addFullTweet(ArrayList<ArrayList> fullTweet, NodeTalker talker){
+//        System.out.println("nb.addFullTweet fullTweet: " + fullTweet);
+//        if (db.addFullTweet(fullTweet)){
+//            propagateTweet(fullTweet, talker);
+//            if (window != null && fullTweet.get(0).get(1).equals("2")){
+//                String txiHash = ((ArrayList<String>)fullTweet.get(2).get(0)).get(1);
+//                String txiTxoIndex = ((ArrayList<String>)fullTweet.get(2).get(0)).get(2);
+//                String tweeterPubKeyHash = db.getPubKeyHashFromTxiHash(txiHash, txiTxoIndex);
+//                boolean doIFollow = db.doIFollow(tweeterPubKeyHash, username);
+//                System.out.println("nb.addFullTweet tweeterHash: " + tweeterPubKeyHash + " doIfollow: " + doIFollow);
+//                if (doIFollow){
+//                    String name = db.getName(tweeterPubKeyHash);
+//                    window.addTweet(name, (String)fullTweet.get(0).get(4));
+//                }
+//            }
+//        }
+//    }
 
     public void addFullGiveTweet(ArrayList<ArrayList> fullTweet){
         db.addFullTweet(fullTweet);
@@ -441,6 +592,15 @@ public class NodeBase {
 
     private void propagateTweet(ArrayList<ArrayList> fullTweet, NodeTalker talker){
         ArrayList<String> wireReadyTweet = convertFullTweetForWire(fullTweet);
+        for (NodeTalker newGuy : allTalkers){
+            if (newGuy != talker){
+                newGuy.sendTweet(wireReadyTweet);
+            }
+        }
+    }
+
+    private void propagateTx(Tx tx, NodeTalker talker){
+        ArrayList<String> wireReadyTweet = tx.convertForWire();
         for (NodeTalker newGuy : allTalkers){
             if (newGuy != talker){
                 newGuy.sendTweet(wireReadyTweet);
@@ -483,6 +643,12 @@ public class NodeBase {
         }
     }
 
+    public void addHeardBlock(Block block, NodeTalker talker){
+        if (db.addBlock(block)){
+            propagateBlock(block, talker);
+        }
+    }
+
     public void addHeardGiveBlock(ArrayList<ArrayList> fullBlock){
         System.out.println("NodeBase addHeardBlock fullBlock: " + fullBlock);
         db.addFullBlock(fullBlock);
@@ -496,8 +662,22 @@ public class NodeBase {
         }
     }
 
+    public void addMinedBlock(Block block) {
+        if (db.addBlock(block)){
+            propagateBlock(block, null);
+        }
+    }
+
+    private void propagateBlock(Block block, NodeTalker talker){
+        ArrayList<String> wireBlock = block.convertBlockForWire();
+        for (NodeTalker newGuy : allTalkers){
+            if (newGuy != talker){
+                newGuy.sendNewBlock(wireBlock);
+            }
+        }
+    }
+
     private void propagateBlock(ArrayList<ArrayList> fullBlock, NodeTalker talker){
-        //TODO make this
         ArrayList<String> wireBlock = convertFullBlockForWire(fullBlock);
 
         for (NodeTalker newGuy : allTalkers){
@@ -633,23 +813,6 @@ public class NodeBase {
         allTalkers.get(0).askForBlockHeight();
     }
 
-    public boolean updateMyProfile(String profileTweet){
-        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(username, profileTweet, "3");
-        System.out.println("NodeBase addProfileTweet() fullTweet: " + fullTweet);
-        if (fullTweet.isEmpty()){
-            return false;
-        }
-        boolean success = db.addFullTweet(fullTweet);
-        System.out.println("updateMyProfile success = " + success);
-        if (!success){
-            return false;
-        }else{
-            propagateTweet(fullTweet, null);
-            System.out.println("nb updateMyProfile proptweet");
-            return true;
-        }
-    }
-
     public void changeUsername(String newUsername){
         username = newUsername;
     }
@@ -737,22 +900,6 @@ public class NodeBase {
         return friends;
     }
 
-    public boolean giveTx(String username, String pubKey, String number) {
-        ArrayList<ArrayList> fullTweet = new Construct(db).constructGiveTx(username, pubKey, number);
-        System.out.println("NodeBase giveTx fullTweet: " + fullTweet);
-        if (fullTweet.isEmpty()){
-            return false;
-        }
-        boolean success = db.addFullTweet(fullTweet);
-        System.out.println("giveTx success = " + success);
-        if (!success){
-            return false;
-        }else{
-            propagateTweet(fullTweet, null);
-            System.out.println("nb giveTx proptweet");
-            return true;
-        }
-    }
 
     public void shutdown(){
         for (NodeTalker talker : allTalkers){
@@ -807,10 +954,13 @@ public class NodeBase {
 
     public void startUser(String username){
         setUsername(username);
-        setIpPort(networkType, nameOfInsideNetwork);
+        setIpPort(networkType, true);
+        //start contacting others
+        callEnoughFriends();
+        //start listening for others
         startNewServer(networkType);
-        //startNewMiner();
-        updateTalkersUser(networkType);
+        //setup periodic calling of friends
+        scheduleNetworkCheck(networkType);
     }
 
     public int getBlockChainHeight(){
