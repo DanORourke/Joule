@@ -1,9 +1,7 @@
 package DB;
 
-import ReadWrite.Construct;
 import ReadWrite.MathStuff;
 import Structures.*;
-
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -308,32 +306,6 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeedBlock(){
-
-//        ArrayList<ArrayList> fullBlock = new ArrayList<>();
-//        ArrayList<String> header = new ArrayList<>();
-//        ArrayList<ArrayList> fullTweet = new ArrayList<>();
-//        ArrayList<String> tx = new ArrayList<>();
-//        ArrayList<ArrayList> txoList = new ArrayList<>();
-//        ArrayList<String> txo = new ArrayList<>();
-//        ArrayList<String> txList = new ArrayList<>();
-//
-//        String txHash = new MathStuff().createHash( "1" + "0" + "0" + seedTime + "0");
-//        tx.addAll(Arrays.asList(txHash, "1", "0", "0", seedTime, "0"));
-//        txo.addAll(Arrays.asList("25", "0", pubKey1));
-//        txoList.add(txo);
-//        fullTweet.add(tx);
-//        fullTweet.add(txoList);
-//
-//        String merkle = new MathStuff().createBlockMerkleRoot(null, tx.get(0));
-//        String headerhash = new MathStuff().createHash("0" + merkle + "0" + seedTarget + "0");
-//        header.addAll(Arrays.asList(headerhash, "0", merkle, "0", seedTarget, "0"));
-//
-//        fullBlock.add(header);
-//        fullBlock.add(fullTweet);
-//        fullBlock.add(txList);
-//
-//        addFullBlock(fullBlock);
-
         //create Joulebse
         JouleBase base = new JouleBase(seedTime);
         //add the txo to the tx
@@ -580,25 +552,6 @@ public class SQLiteJDBC {
         return info;
     }
 
-    public synchronized ArrayList<String> getMiningInfo(){
-        ArrayList<String> miningInfo = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-            c.setAutoCommit(false);
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE HEIGHT = " +
-                    "(SELECT MAX(HEIGHT) FROM BLOCKCHAIN) ORDER BY HEADERHASH ASC;");
-            miningInfo.add(String.valueOf(rs.getInt("HEIGHT")));
-            miningInfo.add((rs.getString("HEADERHASH")));
-            miningInfo.add(rs.getString("TARGET"));
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return miningInfo;
-    }
-
     public synchronized ArrayList<Block> getAllBlocks(int height){
         //get the header hash of all headers at this height
         ArrayList<String> allHeaders = getHeadersAtHeight(height);
@@ -711,73 +664,6 @@ public class SQLiteJDBC {
         return header;
     }
 
-    public synchronized ArrayList<ArrayList> getAllFullBlocks(int height){
-        //TODO can I get all this in one call??
-        ArrayList<ArrayList> allFullBlocks = new ArrayList<>();
-        ArrayList<ArrayList> allBlockHeaders = getAllBlockHeaders(height);
-        if (allBlockHeaders.isEmpty()){
-            return allBlockHeaders;
-        }
-        for (ArrayList<String> blockHeader : allBlockHeaders){
-            ArrayList<ArrayList> fullBlock = new ArrayList<>();
-            ArrayList<ArrayList> tweetBaseTx = getTweetBaseTx(blockHeader.get(0));
-            ArrayList<String> txList = getBlockTxList(blockHeader.get(0));
-            fullBlock.add(blockHeader);
-            fullBlock.add(tweetBaseTx);
-            if (txList != null && !txList.isEmpty()){
-                fullBlock.add(txList);
-            }
-            allFullBlocks.add(fullBlock);
-        }
-        return allFullBlocks;
-    }
-
-    private synchronized ArrayList<String> getBlockTxList(String blockHash){
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-            c.setAutoCommit(false);
-            ResultSet rs = stmt.executeQuery( "SELECT TXHASH FROM MAPTABLE WHERE HEADERHASH = '" + blockHash +
-                    "' AND TXINDEX != '0' ORDER BY TXINDEX ASC;");
-            if (rs.isBeforeFirst()){
-                ArrayList<String> tweetBaseTx = new ArrayList<>();
-                while (rs.next()){
-                    String hash = rs.getString("TXHASH");
-                    tweetBaseTx.add(hash);
-                }
-                rs.close();
-                stmt.close();
-                return tweetBaseTx;
-            }
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private synchronized ArrayList<ArrayList> getTweetBaseTx(String blockHash){
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-            c.setAutoCommit(false);
-            ResultSet rs = stmt.executeQuery( "SELECT TXHASH FROM MAPTABLE WHERE HEADERHASH =" +
-                    " '" + blockHash + "' AND TXINDEX = '" + 0 + "';");
-            if (rs.isBeforeFirst()){
-                String tweetBaseTxHash = rs.getString("TXHASH");
-                rs.close();
-                stmt.close();
-                return getFullTweet(tweetBaseTxHash);
-            }
-            rs.close();
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public synchronized ArrayList<String> getBlockHeader(String headerHash){
         Statement stmt = null;
         ArrayList<String> header = new ArrayList<>();
@@ -800,147 +686,6 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return header;
-    }
-
-    private synchronized ArrayList<ArrayList> getAllBlockHeaders(int height){
-        Statement stmt = null;
-        ArrayList<ArrayList> allBlockHeaders = new ArrayList<>();
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE HEIGHT=" +
-                    " " + height + ";");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    ArrayList<String> header = new ArrayList<>();
-                    header.addAll(Arrays.asList(rs.getString("HEADERHASH"), String.valueOf(height),
-                            rs.getString("MERKLEROOT"), rs.getString("PREVIOUSHASH"),
-                            rs.getString("TARGET"), rs.getString("NONCE"))) ;
-                    allBlockHeaders.add(header);
-                }
-            }
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return allBlockHeaders;
-    }
-
-
-    public synchronized boolean addFullTweet(ArrayList<ArrayList> fullTweet){
-        if (fullTweet.isEmpty()){
-            System.out.println("db.addFullTweet empty fulltweet");
-            return false;
-        }
-
-        ArrayList<String> tx = fullTweet.get(0);
-        PreparedStatement preparedStatement = null;
-        int entered = 0;
-        try {
-            c.setAutoCommit(false);
-            String sql = "INSERT OR IGNORE INTO TXTABLE (TXHASH, TYPE, UNLOCK, TWEETLENGTH, TWEET, NUMBERTOMINER) VALUES " +
-                    "('" + tx.get(0) + "', '" + tx.get(1) + "', '" + tx.get(2) + "', '" + tx.get(3) +
-                    "', ?, '" + tx.get(5) + "');";
-
-            preparedStatement = c.prepareStatement(sql);
-            preparedStatement.setString(1, tx.get(4));
-            entered = preparedStatement.executeUpdate();
-            preparedStatement.close();
-            System.out.println("Tweet: " + fullTweet);
-            System.out.println("Tweet added");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-        String txHash = tx.get(0);
-        if (entered == 1){
-
-            ArrayList<ArrayList> txoList = fullTweet.get(1);
-            for (ArrayList<String> txoInstance : txoList) {
-                //TODO this screwing up with fullTweet from newTweet
-                updateProfile(txoInstance.get(2));
-                String pubKeyHash = new MathStuff().createHash(txoInstance.get(2));
-                try {
-                    Statement stmt2 = c.createStatement();
-                    String sql = "INSERT INTO TXOTABLE (TXHASH, NUMBERTOTXO, TXOINDEX, TXOPUBKEYHASH) " +
-                            "VALUES ('" + txHash + "', '" + txoInstance.get(0) + "', '" + txoInstance.get(1) +
-                            "', '" + pubKeyHash + "');";
-                    stmt2.executeUpdate(sql);
-                    stmt2.close();
-                    c.commit();
-                    System.out.println("TxoInstance: " + txoInstance);
-                    System.out.println("TxoInstance added");
-
-                    //Add the new txo to openTxoTable, give placeholder headerhash
-                    Statement stmt = null;
-                    stmt = c.createStatement();
-
-                    sql = "INSERT INTO OPENTXOTABLE (TXHASH, TXOINDEX, HEADERHASH, COINNUMBER, PUBKEYHASH) VALUES (" +
-                            "'" + txHash + "', '" + txoInstance.get(1) + "', 'NA', '" + txoInstance.get(0) +
-                            "', '" + pubKeyHash + "');";
-                    stmt.executeUpdate(sql);
-                    stmt.close();
-                    c.commit();
-                    System.out.println("openTxo added");
-
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
-            if (!tx.get(1).equals("1")){
-                ArrayList<ArrayList> txiTotal = fullTweet.get(2);
-                for (ArrayList<String> txiInstance : txiTotal) {
-
-                    try {
-                        Statement stmt2 = c.createStatement();
-                        c.setAutoCommit(false);
-                        String sql = "INSERT INTO TXITABLE (TXHASH, TXIINDEX, TXIHASH, TXITXOINDEX) VALUES ('" +
-                                txHash + "', '" + txiInstance.get(0) + "', '" + txiInstance.get(1) + "', '" +
-                                txiInstance.get(2) + "');";
-                        stmt2.executeUpdate(sql);
-                        stmt2.close();
-                        c.commit();
-                        System.out.println("TxiInstance: " + txiInstance);
-                        System.out.println("TxiInstance added");
-
-                        Statement stmt = null;
-                        stmt = c.createStatement();
-
-                        sql = "DELETE FROM OPENTXOTABLE WHERE TXHASH = '" + txiInstance.get(1) + "' AND TXOINDEX = '" +
-                                txiInstance.get(2) + "';";
-                        stmt.executeUpdate(sql);
-                        stmt.close();
-                        c.commit();
-                        System.out.println("openTxo deleted");
-
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            if(tx.get(1).equals("3")){
-                ArrayList<String> nameAbout = convertReportToProfile(tx.get(4));
-                ArrayList<String> txi = (ArrayList<String>)fullTweet.get(2).get(0);
-                PreparedStatement stmt = null;
-                try {
-                    stmt = c.prepareStatement("UPDATE PROFILETABLE SET NAME = ?, ABOUT = ? WHERE PUBKEYHASH = " +
-                            "(SELECT TXOPUBKEYHASH FROM TXOTABLE WHERE TXHASH = '" + txi.get(1) +
-                            "' AND TXOINDEX = '" + txi.get(2) + "');");
-                    stmt.setString(1, nameAbout.get(0));
-                    stmt.setString(2, nameAbout.get(1));
-                    stmt.executeUpdate();
-                    stmt.close();
-                    c.commit();
-                    System.out.println("ProfileTable updated");
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        }
-        return (!(entered == 0));
     }
 
     private synchronized ArrayList<String> convertReportToProfile(String tweet){
@@ -1000,13 +745,6 @@ public class SQLiteJDBC {
                     "OPENTXOTABLE.HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1) " +
                     "ORDER BY OPENTXOTABLE.ID ASC;");
             if (rs.isBeforeFirst()){
-//                ResultSetMetaData md = rs.getMetaData();
-//                int colCount = md.getColumnCount();
-//
-//                for (int i = 1; i <= colCount ; i++){
-//                    String col_name = md.getColumnName(i);
-//                    System.out.println(col_name);
-//                }
                 int i = 0;
                 int loop = 0;
                 int totalNeeded = 1;
@@ -1052,13 +790,6 @@ public class SQLiteJDBC {
                     "OPENTXOTABLE.HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1) " +
                     "ORDER BY OPENTXOTABLE.ID ASC;");
             if (rs.isBeforeFirst()){
-//                ResultSetMetaData md = rs.getMetaData();
-//                int colCount = md.getColumnCount();
-//
-//                for (int i = 1; i <= colCount ; i++){
-//                    String col_name = md.getColumnName(i);
-//                    System.out.println(col_name);
-//                }
                 int totalNeeded = rs.getInt("REPORTREWARD");
                 allTxi.setReportReward(totalNeeded);
                 allTxi.setPubKey(rs.getString("PUBKEY"));
@@ -1115,67 +846,6 @@ public class SQLiteJDBC {
             return true;
         }
         return false;
-    }
-
-    public synchronized ArrayList<ArrayList> getSpendableTxo(String pubKeyHash, String txPerTweet,
-                                                             ArrayList<String> miningInfo){
-        int offset = 0;
-        int totalSpendable = 0;
-        int totalNeeded = Integer.valueOf(txPerTweet);
-        ArrayList<ArrayList> spendableTx = new ArrayList<>();
-        while (true){
-            ArrayList<String> tx = getSpendableTxoCycle(pubKeyHash, offset);
-            System.out.println("db.getSpendableTxo attempt: " + tx);
-            if (tx.isEmpty()){
-                spendableTx.clear();
-                return spendableTx;
-            }
-            boolean acceptable = isTxAcceptable(tx.get(0), miningInfo);
-            if (acceptable){
-                spendableTx.add(tx);
-                int newSpendable = Integer.valueOf(tx.get(1));
-                totalSpendable = totalSpendable + newSpendable;
-                System.out.println("db.getSpendable totalSpendable: : " + totalSpendable +
-                        " totalNeeded: " + totalNeeded);
-                if (totalSpendable >= totalNeeded){
-                    return spendableTx;
-                }else {
-                    offset++;
-                }
-            }else {
-                offset++;
-            }
-        }
-    }
-
-    private synchronized ArrayList<String> getSpendableTxoCycle(String pubKeyHash, int offset){
-        ArrayList<String> txo = new ArrayList<>();
-        Statement stmt = null;
-        try {
-
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            //see if header hash if real or placeholder
-            ResultSet rs = stmt.executeQuery("SELECT * FROM OPENTXOTABLE WHERE PUBKEYHASH = '" + pubKeyHash +
-                    "' AND HEADERHASH != 'NA' ORDER BY ID ASC LIMIT 1 OFFSET '" + offset + "';");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    txo.addAll(Arrays.asList(rs.getString("TXHASH"),
-                            rs.getString("COINNUMBER"), rs.getString("TXOINDEX"),
-                            rs.getString("PUBKEYHASH")));
-                    System.out.println("db.getSpendableTxoCycle attempt txo :" + txo);
-                }
-                stmt.close();
-                rs.close();
-            }else {
-                stmt.close();
-                return txo;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return txo;
     }
 
     public synchronized boolean isTxAcceptableForBlock(String txHash, String previousBlock){
@@ -1241,7 +911,6 @@ public class SQLiteJDBC {
 
     private synchronized boolean inSameChain(String firstHeader, String firstHeightString,
                                 String secondHeader, String secondHeightString){
-        //TODO think about just checking chain numbers first, then not bothering with this thing if passes
         System.out.println("db.inSameChain firstHeader: " + firstHeader + " firstHeightString: " + firstHeightString +
                 " secondHeader: " + secondHeader + " SecondHeightString:" + secondHeightString);
         int firstHeight = Integer.valueOf(firstHeightString);
@@ -1262,44 +931,6 @@ public class SQLiteJDBC {
             rs.close();
             stmt.close();
             return exists;
-//            if (difference < 10){
-//                ResultSet rs = stmt.executeQuery(constructInSameChainSql(secondHeader, difference));
-//                if (rs.isBeforeFirst()){
-//                    String chainHash = rs.getString("PREVIOUSHASH");
-//                    System.out.println("inSameChain firstHeader: " + firstHeader + " chainHash: " + chainHash);
-//                    rs.close();
-//                    stmt.close();
-//                    // this is causing chaintable to lock for some reason, reconnecting in hopes of fixing it?
-//                    Connection c2 = DriverManager.getConnection("jdbc:sqlite:vault.db");
-//                    c2.setAutoCommit(false);
-//                    Connection c3 = c;
-//                    c = c2;
-//                    c3.close();
-//                    return firstHeader.equals(chainHash);
-//                }
-//                rs.close();
-//                stmt.close();
-//                System.out.println("db.inSameChain rs empty");
-//            }else {
-//                ArrayList<String> sqlList = constructInSameChainSqlMore(secondHeader, difference);
-//                stmt = c.createStatement();
-//                stmt.executeUpdate(sqlList.get(0));
-//                stmt.close();
-//                c.commit();
-//                Statement stmt2 = c.createStatement();
-//                ResultSet rs = stmt2.executeQuery(sqlList.get(1));
-//                String chainHash = rs.getString("PREVIOUSHASH");
-//                rs.close();
-//                stmt2.close();
-//                //This should close the temp tables without risk of having no c when another thread calls
-//                Connection c2 = DriverManager.getConnection("jdbc:sqlite:vault.db");
-//                c2.setAutoCommit(false);
-//                Connection c3 = c;
-//                c = c2;
-//                c3.close();
-//                return firstHeader.equals(chainHash);
-//            }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -1317,57 +948,6 @@ public class SQLiteJDBC {
                 "AND BLOCKCHAIN.HEIGHT >= " + lowerHeight + ") " +
                 "SELECT HEADERHASH FROM same_chain " +
                 "WHERE HEADERHASH = '" + lowerHeaderHash + "'; ";
-        return sql;
-    }
-
-    private synchronized ArrayList<String> constructInSameChainSqlMore(String headerHash, int difference){
-        System.out.println("db.constructInSameChainSqlMore started, difference: " + difference);
-        ArrayList<String> sqlList = new ArrayList<>();
-        String sqlCreate = "CREATE TEMPORARY TABLE A0 AS SELECT PREVIOUSHASH, HEADERHASH FROM BLOCKCHAIN WHERE " +
-                "HEADERHASH = '" + headerHash + "'; ";
-        int i = 1;
-        while (i < difference){
-            sqlCreate = sqlCreate + "CREATE TEMPORARY TABLE A" + String.valueOf(i) + " " +
-                    "AS SELECT PREVIOUSHASH, HEADERHASH FROM BLOCKCHAIN WHERE HEADERHASH = " +
-                    "(SELECT PREVIOUSHASH FROM A" + String.valueOf(i - 1) + "); ";
-            i++;
-        }
-        String sqlSelect ="SELECT PREVIOUSHASH FROM A" + String.valueOf(i - 1) + "; ";
-        i = 0;
-        String sqlDrop = "";
-        while (i < difference){
-            sqlDrop = sqlDrop + "DROP TABLE A" + String.valueOf(i) + "; ";
-            i++;
-        }
-        sqlList.add(sqlCreate);
-        sqlList.add(sqlSelect);
-        sqlList.add(sqlDrop);
-        System.out.println("db.constructInSameChainSqlMore sqlist: " + sqlList);
-        return sqlList;
-    }
-
-    private synchronized String constructInSameChainSql(String headerHash, int difference){
-        System.out.println("db.constructInSameChainSql started, difference: " + difference);
-
-        String sql = "SELECT PREVIOUSHASH FROM BLOCKCHAIN WHERE HEADERHASH = ";
-        if (difference == 1){
-            sql = sql + "'" + headerHash + "';";
-            System.out.println("db.constructInSameChainSql sql: " + sql);
-            return sql;
-        }
-        int i = 1;
-        while(i < difference){
-            sql = sql + "(SELECT PREVIOUSHASH FROM BLOCKCHAIN WHERE HEADERHASH = ";
-            i++;
-        }
-        sql = sql + "'" + headerHash + "'";
-        i = 1;
-        while(i < difference){
-            sql = sql + ")";
-            i++;
-        }
-        sql = sql + "; ";
-        System.out.println("db.constructInSameChainSql sql: " + sql);
         return sql;
     }
 
@@ -1407,7 +987,6 @@ public class SQLiteJDBC {
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEADERHASH IN " +
                     "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH IN " +
-                    //"(SELECT TXHASH FROM TXTABLE WHERE TXHASH IN " +
                     "(SELECT TXHASH FROM TXITABLE WHERE TXIHASH = '" + txHash +"'));");
             if (rs.isBeforeFirst()){
                 while (rs.next()){
@@ -1458,40 +1037,6 @@ public class SQLiteJDBC {
         return "Other Guy";
     }
 
-    public synchronized ArrayList<ArrayList> getAllTxiTxo(ArrayList<ArrayList> txiList){
-        ArrayList<ArrayList> allTxiTxo = new ArrayList<>();
-        try {
-            for (ArrayList<String> txi : txiList){
-                ArrayList<String> txo = new ArrayList<>();
-                String txiHash = txi.get(1);
-                String txiTxoIndex = txi.get(2);
-                Statement stmt = null;
-                c.setAutoCommit(false);
-                stmt = c.createStatement();
-                ResultSet rs = stmt.executeQuery( "SELECT * FROM TXOTABLE WHERE TXHASH = '" + txiHash +
-                        "' AND TXOINDEX = '" + txiTxoIndex + "';");
-                if (rs.isBeforeFirst()){
-                    txo.addAll(Arrays.asList(rs.getString("TXHASH"), rs.getString("NUMBERTOTXO"),
-                            rs.getString("TXOINDEX"), rs.getString("TXOPUBKEYHASH")));
-                }else{
-                    rs.close();
-                    stmt.close();
-                    allTxiTxo.clear();
-                    return allTxiTxo;
-                }
-                rs.close();
-                stmt.close();
-                allTxiTxo.add(txo);
-            }
-            return allTxiTxo;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        allTxiTxo.clear();
-        return allTxiTxo;
-    }
-
     public synchronized String getPubKeyHashFromTxiHash(String txiHash, int txiTxoHash){
         String pubKey = "";
         Statement stmt = null;
@@ -1530,48 +1075,6 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return pubKey;
-    }
-
-    public synchronized boolean havePubKey(String pubKey) {
-        boolean answer = false;
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT PUBKEY FROM PROFILETABLE WHERE PUBKEY = '" +
-                    pubKey + "';");
-            if (rs.isBeforeFirst()){
-                answer = true;
-            }
-            rs.close();
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return answer;
-    }
-
-    public synchronized ArrayList<String> getTxToAddToBlock(){
-        ArrayList<String> txList = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TXHASH, NUMBERTOMINER FROM TXTABLE WHERE TXHASH NOT IN " +
-                    "(SELECT TXHASH FROM MAPTABLE) AND TYPE != '1';");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    txList.add(rs.getString("TXHASH"));
-                    txList.add(String.valueOf(rs.getInt("NUMBERTOMINER")));
-                }
-            }
-            rs.close();
-            stmt.close();
-            return txList;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return txList;
     }
 
     public synchronized boolean addBlock(Block block){
@@ -1760,10 +1263,6 @@ public class SQLiteJDBC {
             if (tx.getType() == 3){
                 updateProfileTable(tx);
             }
-//            //add profile if pubKey unknown
-//            if (tx.getType() == 4){
-//                updateProfile(tx.getAllTxo().getAllTxo().get(0).getTxoPubKey());
-//            }
         }
         return (entered == 1);
     }
@@ -1855,121 +1354,6 @@ public class SQLiteJDBC {
         }
     }
 
-    public synchronized boolean addFullBlock(ArrayList<ArrayList> fullBlock){
-        //TODO add boolean so add header doesn't redo the chain every time when catching up, slows things down
-        System.out.println("db.addFullBlock fullBlock: " + fullBlock);
-        ArrayList<String> header = fullBlock.get(0);
-        boolean added = addBlockHeader(header);
-        System.out.println("db.addFullBlock header added: " + added);
-        if (added){
-            ArrayList<ArrayList> tweetBaseTx = fullBlock.get(1);
-            addFullTweet(tweetBaseTx);
-            if (!fullBlock.get(2).isEmpty()){
-                System.out.println("db addFullBlock tweetbase plus tweets map add, fullblock.get(2): "
-                        + fullBlock.get(2));
-                ArrayList<String> componentTxs = fullBlock.get(2);
-                componentTxs.add(0, (String)tweetBaseTx.get(0).get(0));
-                mapNewBlock(componentTxs, header.get(0));
-                updateOpenTxoTable(tweetBaseTx, componentTxs, header.get(0));
-            }else {
-                System.out.println("db addFullBlock tweetbase only map add");
-                ArrayList<String> componentTxs = new ArrayList<>();
-                componentTxs.add((String)tweetBaseTx.get(0).get(0));
-                mapNewBlock(componentTxs, header.get(0));
-                updateOpenTxoTable(tweetBaseTx, componentTxs, header.get(0));
-            }
-        }
-        return  added;
-    }
-
-    private synchronized void updateOpenTxoTable(ArrayList<ArrayList> tweetBaseTx, ArrayList<String> componentTxs, String headerHash){
-        //TODO too many calls, make this more efficient
-        componentTxs.remove(0);
-
-        ArrayList<String> tx = tweetBaseTx.get(0);
-        ArrayList<String> txo = (ArrayList<String>)tweetBaseTx.get(1).get(0);
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-
-            String sql = "UPDATE OPENTXOTABLE SET HEADERHASH  = '" + headerHash + "' WHERE TXHASH = '"
-                    + tx.get(0) + "' AND TXOINDEX = '" + txo.get(1) + "';";
-            stmt.executeUpdate(sql);
-            stmt.close();
-            c.commit();
-            System.out.println("OpenTxo TxBase updated");
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-        for (String txHash: componentTxs){
-            ArrayList<ArrayList> fullTweet = getFullTweet(txHash);
-
-            Statement stmt2 = null;
-            ArrayList<String> tx2 = fullTweet.get(0);
-            ArrayList<ArrayList> txoList = fullTweet.get(1);
-
-            for (ArrayList<String> txo2 : txoList){
-                //add new txo to openTxoTable
-                try {
-                    stmt2 = c.createStatement();
-
-                    String sql2 = "UPDATE OPENTXOTABLE SET HEADERHASH = '" + headerHash + "' WHERE TXHASH = '"
-                            + tx2.get(0) + "' AND TXOINDEX = '" + txo2.get(1) + "';";
-                    stmt2.executeUpdate(sql2);
-                    stmt2.close();
-                    c.commit();
-                    System.out.println("OpenTxo TweetTx added");
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private synchronized void mapNewBlock(ArrayList<String> componentTxs, String headerHash){
-        for (String tx: componentTxs){
-            Statement stmt = null;
-            try {
-                stmt = c.createStatement();
-
-                String sql = "INSERT INTO MAPTABLE (HEADERHASH, TXHASH, TXINDEX) VALUES (" +
-                        "'" + headerHash + "', " +
-                        "'" + tx + "', '" + String.valueOf(componentTxs.indexOf(tx)) + "');";
-                stmt.executeUpdate(sql);
-                stmt.close();
-                c.commit();
-                System.out.println("map added");
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private synchronized boolean addBlockHeader(ArrayList<String> header){
-        int entered = 0;
-        try {
-            PreparedStatement preparedStatement = null;
-            String sql = "INSERT OR IGNORE INTO BLOCKCHAIN (HEADERHASH, HEIGHT, " +
-                    "MERKLEROOT, PREVIOUSHASH, TARGET, NONCE, CHAIN) VALUES " +
-                    "('" + header.get(0) + "', " + Integer.valueOf(header.get(1)) + ", " +
-                    "'" + header.get(2) + "', '" + header.get(3) + "', '" + header.get(4) + "', " +
-                    "'" + header.get(5) + "', '1');";
-            preparedStatement = c.prepareStatement(sql);
-            entered = preparedStatement.executeUpdate();
-            preparedStatement.close();
-            c.commit();
-            //System.out.println("addBlockHeader called");
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        if (entered == 1){
-            //done for now: speed this up, it is still slow
-            updateChainNumbers();
-        }
-        return (entered == 1);
-    }
-
     private synchronized void updateChainNumbers(){
         resetChain3();
         resetChainLoop(getHighestHeaders());
@@ -2040,39 +1424,6 @@ public class SQLiteJDBC {
         } catch ( Exception e ) {
             e.printStackTrace();
         }
-//        boolean stop = false;
-//        String previous = headerHash;
-//        while (!stop) {
-//            Statement stmt = null;
-//            try {
-//                stmt = c.createStatement();
-//
-//                String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '2' " +
-//                        "WHERE HEADERHASH = '" + previous + "';";
-//                stmt.executeUpdate(sql);
-//                stmt.close();
-//                c.commit();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            try {
-//                stmt = c.createStatement();
-//                c.setAutoCommit(false);
-//                ResultSet rs = stmt.executeQuery("SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
-//                        "WHERE HEADERHASH = '" + previous + "';");
-//                if (rs.isBeforeFirst()) {
-//                    previous = rs.getString("PREVIOUSHASH");
-//                }
-//                stmt.close();
-//                rs.close();
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//            }
-//            if (previous.equals("0")){
-//                stop = true;
-//            }
-//        }
-
     }
 
     private synchronized void resetChain1(String headerHash, int height){
@@ -2090,67 +1441,9 @@ public class SQLiteJDBC {
         } catch ( Exception e ) {
             e.printStackTrace();
         }
-//        boolean stop = false;
-//        String previous = headerHash;
-//        while (!stop) {
-//            Statement stmt = null;
-//            try {
-//                stmt = c.createStatement();
-//
-//                String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '1' " +
-//                        "WHERE HEADERHASH = '" + previous + "';";
-//                stmt.executeUpdate(sql);
-//                stmt.close();
-//                c.commit();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            try {
-//                stmt = c.createStatement();
-//                c.setAutoCommit(false);
-//                ResultSet rs = stmt.executeQuery("SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
-//                        "WHERE HEADERHASH = '" + previous + "';");
-//                if (rs.isBeforeFirst()) {
-//                    previous = rs.getString("PREVIOUSHASH");
-//                }
-//                stmt.close();
-//                rs.close();
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//            }
-//            if (previous.equals("0")){
-//                stop = true;
-//            }
-//        }
     }
 
     private synchronized String constructResetChainSql(String number, String headerHash, int height){
-//        String sql = "CREATE TEMPORARY TABLE IF NOT EXISTS CHAINTABLE (HEADERHASH TXT NOT NULL, HEIGHT INT NOT NULL); ";
-//        //sql = sql + "DELETE FROM CHAINTABLE; ";
-//        sql = sql + "INSERT INTO CHAINTABLE (HEADERHASH, HEIGHT) VALUES ('" + headerHash + "', " + height + "); ";
-//        while (height > 0){
-//            height--;
-//            sql = sql + "INSERT INTO CHAINTABLE (HEADERHASH, HEIGHT) VALUES " +
-//                    "((SELECT PREVIOUSHASH FROM BLOCKCHAIN WHERE HEADERHASH = " +
-//                    "(SELECT HEADERHASH FROM CHAINTABLE WHERE HEIGHT = (SELECT MIN(HEIGHT) FROM CHAINTABLE))), "
-//                    + height + "); ";
-//        }
-//        sql = sql + "UPDATE BLOCKCHAIN SET CHAIN  = '" + number + "' WHERE HEADERHASH IN " +
-//                "(SELECT HEADERHASH FROM CHAINTABLE); ";
-//        sql = sql + "DROP TABLE CHAINTABLE;";
-//        System.out.println(sql);
-//        return sql;
-
-//        String sql = "WITH RECURSIVE " +
-//                "parent_of(HEADERHASH, PREVIOUSHASH) AS " +
-//                "(SELECT HEADERHASH, PREVIOUSHASH FROM BLOCKCHAIN)," +
-//                "ancestor_of(HEADERHASH) AS " +
-//                "(SELECT PREVIOUSHASH FROM parent_of WHERE HEADERHASH = '" + headerHash + "' " +
-//                "UNION ALL " +
-//                "SELECT PREVIOUSHASH FROM parent_of JOIN ancestor_of USING(HEADERHASH)) " +
-//                "UPDATE BLOCKCHAIN SET CHAIN = '" + number + "' WHERE HEADERHASH IN " +
-//                "(SELECT HEADERHASH FROM ancestor_of); ";
-
         String sql = "WITH RECURSIVE " +
                 "same_chain(HEADERHASH) AS (" +
                 "VALUES('" + headerHash + "') " +
@@ -2162,115 +1455,6 @@ public class SQLiteJDBC {
         return sql;
     }
 
-    private synchronized String getPreviousHash(String headerHash){
-        String previous = "";
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-            c.setAutoCommit(false);
-            ResultSet rs = stmt.executeQuery( "SELECT PREVIOUSHASH FROM BLOCKCHAIN " +
-                    "WHERE HEADERHASH = '" + headerHash + "';");
-            if (rs.isBeforeFirst()){
-                previous = rs.getString("PREVIOUSHASH");
-            }
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return previous;
-    }
-
-    private synchronized void resetChain(String headerHash, int number){
-        Statement stmt = null;
-        try {
-            stmt = c.createStatement();
-
-            String sql = "UPDATE BLOCKCHAIN SET CHAIN  = '" + String.valueOf(number) + "' " +
-                    "WHERE HEADERHASH = '" + headerHash + "';";
-            stmt.executeUpdate(sql);
-            stmt.close();
-            c.commit();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    public synchronized ArrayList<ArrayList> getFullTweet(String txHash){
-        ArrayList<ArrayList> fullTweet = new ArrayList<>();
-        ArrayList<String> tx = getTxOld(txHash);
-        ArrayList<ArrayList> txoList = getTxoList(txHash);
-        fullTweet.add(tx);
-        fullTweet.add(txoList);
-        ArrayList<ArrayList> txiList = new ArrayList<>();
-        if (!tx.get(1).equals("1")){
-            txiList = getTxiList(txHash);
-            fullTweet.add(txiList);
-        }
-        if (tx.isEmpty() || txoList.isEmpty() || (!tx.get(1).equals("1") && txiList.isEmpty())){
-            fullTweet.clear();
-        }
-        return fullTweet;
-    }
-
-    private synchronized ArrayList<ArrayList> getTxoList(String txHash){
-        ArrayList<ArrayList> txo = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXOTABLE LEFT OUTER JOIN PROFILETABLE ON " +
-                    "TXOTABLE.TXOPUBKEYHASH = PROFILETABLE.PUBKEYHASH WHERE TXHASH = '" + txHash + "';");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    ArrayList<String> txoInstance = new ArrayList<>();
-                    txoInstance.addAll(Arrays.asList(rs.getString("NUMBERTOTXO"),
-                            rs.getString("TXOINDEX"), rs.getString("PUBKEY")));
-                    txo.add(txoInstance);
-                }
-                rs.close();
-                stmt.close();
-                return txo;
-
-            }else {
-                rs.close();
-                stmt.close();
-                return txo;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return txo;
-    }
-
-    private synchronized ArrayList<ArrayList> getTxiList(String txHash){
-        ArrayList<ArrayList> txi = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXITABLE WHERE TXHASH = '" + txHash + "';");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    ArrayList<String> txiInstance = new ArrayList<>();
-                    txiInstance.addAll(Arrays.asList(rs.getString("TXIINDEX"),
-                            rs.getString("TXIHASH"), rs.getString("TXITXOINDEX")));
-                    txi.add(txiInstance);
-                }
-                rs.close();
-                stmt.close();
-                return txi;
-            }else {
-                rs.close();
-                stmt.close();
-                return txi;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return txi;
-    }
-
     public synchronized Tx getTx(String txHash){
         //get allTxi
         AllTxi allTxi = getAllTxi(txHash);
@@ -2279,18 +1463,18 @@ public class SQLiteJDBC {
 
         //get Tx
         Statement stmt = null;
+        Tx tx = new Tx(false);
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
             ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH = '" + txHash + "';");
             if (rs.isBeforeFirst()){
                 //construct Tx
-                Tx tx = new Tx(rs.getString("TXHASH"), rs.getInt("TYPE"),
+                tx = new Tx(rs.getString("TXHASH"), rs.getInt("TYPE"),
                         rs.getString("UNLOCK"), rs.getInt("REPORTLENGTH"),
                         rs.getString("REPORT"), rs.getInt("NUMBERTOMINER"), allTxi, allTxo);
                 rs.close();
                 stmt.close();
-                return tx;
             }else {
                 rs.close();
                 stmt.close();
@@ -2298,8 +1482,7 @@ public class SQLiteJDBC {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        //TODO come up with better catch if something bad happens here
-        return new Tx();
+        return tx;
     }
 
     private synchronized AllTxi getAllTxi(String txHash){
@@ -2353,33 +1536,6 @@ public class SQLiteJDBC {
         return allTxo;
     }
 
-    private synchronized ArrayList<String> getTxOld(String txHash){
-        ArrayList<String> tx = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT * FROM TXTABLE WHERE TXHASH = '" + txHash + "';");
-            if (rs.isBeforeFirst()){
-                tx.addAll(Arrays.asList( rs.getString("TXHASH"), rs.getString("TYPE"),
-                        rs.getString("UNLOCK"), rs.getString("TWEETLENGTH"),
-                        rs.getString("TWEET"), rs.getString("NUMBERTOMINER")));
-                rs.close();
-                stmt.close();
-                return tx;
-            }else {
-                tx.clear();
-                rs.close();
-                stmt.close();
-                return tx;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        tx.clear();
-        return tx;
-    }
-
     public synchronized ArrayList<String> cullBlockTxList(ArrayList<String> txList){
         if (txList.isEmpty()){
             return new ArrayList<>();
@@ -2426,28 +1582,6 @@ public class SQLiteJDBC {
         return sql;
     }
 
-    public synchronized String getCurrentHeaderHash(){
-        String currentHeaderHash = "";
-        Statement stmt = null;
-
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH FROM BLOCKCHAIN ORDER BY HEIGHT DESC LIMIT 1");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    currentHeaderHash = rs.getString("HEADERHASH");
-                }
-            }
-            rs.close();
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        System.out.println("db.getCurrentHeaderHash currentHeaderHash: " + currentHeaderHash);
-        return currentHeaderHash;
-    }
-
     public synchronized ArrayList<String> getPastHeaderHashes(int height){
         ArrayList<String> pastHeaderHashes = new ArrayList<>();
         Statement stmt = null;
@@ -2475,49 +1609,6 @@ public class SQLiteJDBC {
         return pastHeaderHashes;
     }
 
-    public synchronized ArrayList<Integer> getAllBlockTxMinerRewards(ArrayList<String> txList){
-        if (txList.isEmpty()){
-            return new ArrayList<>();
-        }
-
-        ArrayList<Integer> newTxList = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery(constructAllBlockMinerRewardsTxListSQL(txList));
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    Integer minerReward = Integer.valueOf(rs.getString("NUMBERTOMINER"));
-                    newTxList.add(minerReward);
-                }
-                rs.close();
-                stmt.close();
-                return newTxList;
-            }else {
-                rs.close();
-                stmt.close();
-                return newTxList;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return newTxList;
-
-    }
-
-    private synchronized String constructAllBlockMinerRewardsTxListSQL(ArrayList<String> txList){
-        String sql = "SELECT NUMBERTOMINER FROM TXTABLE WHERE ";
-        for (int i = 0; i < txList.size(); i ++){
-            if (i != txList.size() - 1){
-                sql = sql + "TXHASH = '" + txList.get(i) + "' OR ";
-            }else {
-                sql = sql + "TXHASH = '" + txList.get(i) + "';";
-            }
-        }
-        return sql;
-    }
-
     public synchronized ArrayList<ArrayList> searchProfileHash(String hash){
         ArrayList<ArrayList> profiles = new ArrayList<>();
         Statement stmt = null;
@@ -2542,7 +1633,6 @@ public class SQLiteJDBC {
     }
 
     public synchronized ArrayList<ArrayList> searchProfileAbout(String about, int startingPoint){
-        //TODO, make less precise, return close things
         ArrayList<ArrayList> profiles = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -2567,7 +1657,6 @@ public class SQLiteJDBC {
     }
 
     public synchronized ArrayList<ArrayList> getReporters(String username){
-        //TODO, make less precise, return close things
         ArrayList<ArrayList> profiles = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -2593,7 +1682,6 @@ public class SQLiteJDBC {
     }
 
     public synchronized ArrayList<ArrayList> searchProfileName(String name, int startingPoint){
-        //TODO, make less precise, return close things
         ArrayList<ArrayList> profiles = new ArrayList<>();
         Statement stmt = null;
         try {
@@ -2726,7 +1814,6 @@ public class SQLiteJDBC {
                     System.out.println("db getTimeOfTweet longRecord: " + longRecord);
                     Date date = new Date(longRecord);
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z"); // the format of your date
-                    //sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago")); // give a timezone reference for formating
                     time = sdf.format(date);
                 }
             }else {
@@ -2841,60 +1928,7 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return ipPort;
-
-//        if (networkType.equals("outside")){
-//            return getIpPortOutside(username);
-//        }else {
-//            return getIpPortInside(username);
-//        }
     }
-
-
-//    public synchronized ArrayList<String> getIpPortOutside(String username){
-//        ArrayList<String> profile = new ArrayList<>();
-//        Statement stmt = null;
-//        try {
-//            c.setAutoCommit(false);
-//            stmt = c.createStatement();
-//            ResultSet rs = stmt.executeQuery( "SELECT OUTSIDEIP, OUTSIDEPORT, NETNAME FROM USER WHERE USERNAME = '" +
-//                    username + "';");
-//            if (rs.isBeforeFirst()){
-//                while (rs.next()){
-//                    profile.add(rs.getString("OUTSIDEIP"));
-//                    profile.add(String.valueOf(rs.getInt("OUTSIDEPORT")));
-//                    profile.add(rs.getString("NETNAME"));
-//                }
-//            }
-//            rs.close();
-//            stmt.close();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-//        return profile;
-//    }
-//
-//    public synchronized ArrayList<String> getIpPortInside(String username){
-//        ArrayList<String> profile = new ArrayList<>();
-//        Statement stmt = null;
-//        try {
-//            c.setAutoCommit(false);
-//            stmt = c.createStatement();
-//            ResultSet rs = stmt.executeQuery( "SELECT INSIDEIP, INSIDEPORT, NETNAME FROM USER WHERE USERNAME = '" +
-//                    username + "';");
-//            if (rs.isBeforeFirst()){
-//                while (rs.next()){
-//                    profile.add(rs.getString("INSIDEIP"));
-//                    profile.add(String.valueOf(rs.getInt("INSIDEPORT")));
-//                    profile.add(rs.getString("NETNAME"));
-//                }
-//            }
-//            rs.close();
-//            stmt.close();
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-//        return profile;
-//    }
 
     public synchronized boolean changeUsername(String oldUsername, String newUsername){
         ArrayList<String> conflict = getUserInfo(newUsername);
@@ -2969,13 +2003,7 @@ public class SQLiteJDBC {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             return false;
         }
-//        if (networkType.equals("outside")){
-//            return updateMyIpOutside(username, myIp);
-//        }else if (networkType.equals("inside")){
-//            return updateMyIpInside(username, myIp);
-//        }else{
-//            return false;
-//        }
+
     }
 
     public synchronized boolean updateMyPort(String username, int myPort, String networkName){
@@ -2997,78 +2025,7 @@ public class SQLiteJDBC {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             return false;
         }
-//        if (networkType.equals("outside")){
-//            return updateMyPortOutside(username, myPort);
-//        }else if (networkType.equals("inside")){
-//            return updateMyPortInside(username, myPort);
-//        }else{
-//            return false;
-//        }
     }
-
-//    public synchronized boolean updateMyIpOutside(String username, String myIp){
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//            String sql = "UPDATE USER SET OUTSIDEIP = '" + myIp + "' WHERE USERNAME = '" + username + "';";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("myIpOUTSIDE updated");
-//            return true;
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//            return false;
-//        }
-//    }
-//
-//    public synchronized boolean updateMyPortOutside(String username, int myPort){
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//            String sql = "UPDATE USER SET OUTSIDEPORT = " + myPort + " WHERE USERNAME = '" + username + "';";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("myPortOUTSIDE updated");
-//            return true;
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//            return false;
-//        }
-//    }
-//
-//    public synchronized boolean updateMyIpInside(String username, String myIp){
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//            String sql = "UPDATE USER SET INSIDEIP = '" + myIp + "' WHERE USERNAME = '" + username + "';";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("myIpINSIDE updated");
-//            return true;
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//            return false;
-//        }
-//    }
-//
-//    public synchronized boolean updateMyPortInside(String username, int myPort){
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//            String sql = "UPDATE USER SET INSIDEPORT = " + myPort + " WHERE USERNAME = '" + username + "';";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("myPortINSIDE updated");
-//            return true;
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//            return false;
-//        }
-//    }
 
     public synchronized boolean updateNetName(String username, String netName, String networkName){
         PreparedStatement preparedStatement = null;
@@ -3090,19 +2047,6 @@ public class SQLiteJDBC {
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
             return false;
         }
-//        Statement stmt = null;
-//        try {
-//            stmt = c.createStatement();
-//            String sql = "UPDATE USER SET NETNAME = '" + netName + "' WHERE USERNAME = '" + username + "';";
-//            stmt.executeUpdate(sql);
-//            stmt.close();
-//            c.commit();
-//            System.out.println("netName updated");
-//            return true;
-//        }catch (Exception e){
-//            System.err.println( e.getClass().getName() + ": " + e.getMessage() );
-//            return false;
-//        }
     }
 
     public synchronized long getTimeOfPastBlock(int height){
@@ -3128,24 +2072,6 @@ public class SQLiteJDBC {
         return 0;
     }
 
-    public synchronized long getTimeOfPastBlock(ArrayList<String> blockInfo, int heightDifference){
-
-        if (heightDifference == 0){
-            return timeOfBlock(blockInfo.get(1));
-        }
-        int rightHeight = Integer.valueOf(blockInfo.get(0)) - heightDifference;
-        ArrayList<String> blocksAtRightHeight = getHeadersAtHeight(rightHeight);
-        System.out.println("db.getTimeOfPastBlock blocksAtRightHeight: " + blocksAtRightHeight);
-
-        for (String headerHash: blocksAtRightHeight){
-            if (inSameChain(headerHash, String.valueOf(rightHeight), blockInfo.get(1), blockInfo.get(0))){
-                return timeOfBlock(headerHash);
-            }
-        }
-
-        return 0;
-    }
-
     private synchronized ArrayList<String> getHeadersAtHeight(int height){
         ArrayList<String> blocks = new ArrayList<>();
         Statement stmt = null;
@@ -3164,28 +2090,6 @@ public class SQLiteJDBC {
             e.printStackTrace();
         }
         return blocks;
-    }
-
-    private synchronized long timeOfBlock(String headerHash){
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TWEET FROM TXTABLE WHERE TXHASH = (SELECT TXHASH " +
-                    "FROM MAPTABLE WHERE HEADERHASH = '" + headerHash + "' AND TXINDEX = '0');");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    long time = Long.parseLong(rs.getString("TWEET"));
-                    rs.close();
-                    return time;
-                }
-            }
-            rs.close();
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0;
     }
 
     public synchronized String getTxToSpend(String username){
@@ -3234,11 +2138,11 @@ public class SQLiteJDBC {
         Statement stmt = null;
         try {
             stmt = c.createStatement();
-            String sql = "UPDATE USER SET COINPERTWEET = '" + newReward + "' WHERE USERNAME = '" + username + "';";
+            String sql = "UPDATE USER SET REPORTREWARD = '" + newReward + "' WHERE USERNAME = '" + username + "';";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
-            System.out.println("coinPerTweet updated");
+            System.out.println("reportReward updated");
         }catch (Exception e){
             System.err.println( e.getClass().getName() + ": " + e.getMessage() );
         }
@@ -3301,14 +2205,7 @@ public class SQLiteJDBC {
         return have;
     }
 
-    public synchronized ArrayList<ArrayList> getSpendableGiveTxo(String pubKeyHash, String txPerTweet,
-                                                    ArrayList<String> miningInfo, String giveNumber) {
-
-        int totalNeeded = Integer.valueOf(txPerTweet) + Integer.valueOf(giveNumber);
-        return getSpendableTxo(pubKeyHash, String.valueOf(totalNeeded), miningInfo);
-    }
-
-    public synchronized AllTx getNewMinerBlockAllTx(){
+    public synchronized AllTx getNewMinerBlockAllTx(int maxInBlock){
         AllTx allTx = new AllTx();
         Statement stmt = null;
         try {

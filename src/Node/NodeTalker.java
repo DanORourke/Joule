@@ -4,7 +4,6 @@ import DB.SQLiteJDBC;
 import ReadWrite.MathStuff;
 import ReadWrite.Verify;
 import Structures.*;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -34,6 +33,7 @@ public class NodeTalker {
     private String nameOfNetwork;
 
     public NodeTalker(Socket socket, SQLiteJDBC db, NodeBase nb, String howStarted, String networkType){
+        //TODO handle malformed data sent from other nodes without failing
         this.socket = socket;
         this.db = db;
         this.nb = nb;
@@ -244,7 +244,6 @@ public class NodeTalker {
             nb.stopMiner();
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            //ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
             Block block = convertWireToBlock(words);
             boolean isVerified = new Verify(db).isBlockVerified(block, nb);
             if (isVerified){
@@ -279,11 +278,9 @@ public class NodeTalker {
         }else if (code.equals("giveBlock")){
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            //ArrayList<ArrayList> fullBlock = convertToFullBlock(words);
             Block block = convertWireToBlock(words);
             boolean isVerified = new Verify(db).isBlockVerified(block, nb);
             if (isVerified){
-                //nb.addHeardGiveBlock(fullBlock);
                 db.addBlock(block);
                 updateBlockHeight();
                 if(blockHeight == otherBlockHeight){
@@ -294,18 +291,18 @@ public class NodeTalker {
             }
         }else if (code.equals("getTx")){
             String txHash = words.get(1);
-            ArrayList<ArrayList> fullTweet = db.getFullTweet(txHash);
-            if (!fullTweet.isEmpty()){
-                ArrayList<String> wireTweet = nb.convertFullTweetForWire(fullTweet);
-                sendGiveTweet(wireTweet);
+            Tx tx = db.getTx(txHash);
+            if (tx.isProper()){
+                ArrayList<String> wireTx = tx.convertForWire();
+                sendGiveTweet(wireTx);
             }
         }else if (code.equals("giveTweet")){
             words.remove(0);
             System.out.println("nodeTalker hearThis words minus 0: " + words);
-            ArrayList<ArrayList> fullTweet = convertToFullTweet(words);
-            boolean isVerified = new Verify(db).isTweetVerified(fullTweet);
+            Tx tx = convertWireToTx(words);
+            boolean isVerified = new Verify(db).verifyTx(tx);
             if (isVerified){
-                nb.addFullGiveTweet(fullTweet);
+                db.addTx(tx);
             }
         }else if (code.equals("getPastHeaderHashes")){
             String blockHeight = words.get(1);

@@ -62,10 +62,7 @@ public class NodeBase {
     private void scheduleNetworkCheck(String networkType){
         //call others periodically, start quickly if first time and callEnoughFriends only has the seed network
         int initialDelay = ((db.getFirstTime()) ? 5 : 60);
-        //reset server every so often, it has been connecting without responding, fix didn't work
-//        Date date = new Date();
-//        oldTime = date.getTime();
-
+        //reset server every so often
         ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(1);
 
@@ -73,11 +70,6 @@ public class NodeBase {
                 scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                                                       public void run() {
                                                           callEnoughFriends();
-//                                                          long newTime = date.getTime();
-//                                                          if ((newTime - oldTime) > 60 * 1000){
-//                                                              newServer(networkType);
-//                                                              resetOldTime(newTime);
-//                                                          }
                                                       }
                                                   },
                         initialDelay, 60,
@@ -94,10 +86,6 @@ public class NodeBase {
             e.printStackTrace();
         }
     }
-
-//    private void resetOldTime(long newTime){
-//        oldTime = newTime;
-//    }
 
     public void startNewServer(String whichOne){
         //listen for others who may call you
@@ -186,19 +174,20 @@ public class NodeBase {
             if (ipPort.size() == 0){
                 setDefaultOutsideIpPort();
                 return;
-            }
-            if (ipPort.get("ip") != null) {
-                outsideIp = ipPort.get("ip");
-            } else {
-                outsideIp = "NA";
-            }
+            }else {
+                if (ipPort.get("ip") != null) {
+                    outsideIp = ipPort.get("ip");
+                } else {
+                    outsideIp = "NA";
+                }
 
-            outsidePort = Integer.valueOf(ipPort.get("port"));
+                outsidePort = Integer.valueOf(ipPort.get("port"));
 
-            if (ipPort.get("netName") != null) {
-                outsideNetName = ipPort.get("netName");
-            } else {
-                outsideNetName = "NA";
+                if (ipPort.get("netName") != null) {
+                    outsideNetName = ipPort.get("netName");
+                } else {
+                    outsideNetName = "NA";
+                }
             }
             if (firstTImeThrough){
                 setDefaultInsideIpPort();
@@ -208,19 +197,20 @@ public class NodeBase {
             if (ipPort.size() == 0){
                 setDefaultInsideIpPort();
                 return;
-            }
-            if (ipPort.get("ip") != null){
-                insideIp = ipPort.get("ip");
             }else {
-                insideIp = "NA";
-            }
+                if (ipPort.get("ip") != null){
+                    insideIp = ipPort.get("ip");
+                }else {
+                    insideIp = "NA";
+                }
 
-            insidePort = Integer.valueOf(ipPort.get("port"));
+                insidePort = Integer.valueOf(ipPort.get("port"));
 
-            if (ipPort.get("netName") != null){
-                insideNetName = ipPort.get("netName");
-            }else {
-                insideNetName = "NA";
+                if (ipPort.get("netName") != null){
+                    insideNetName = ipPort.get("netName");
+                }else {
+                    insideNetName = "NA";
+                }
             }
             if (firstTImeThrough){
                 setDefaultOutsideIpPort();
@@ -241,23 +231,6 @@ public class NodeBase {
 
     public void serverFailed(String nameOfNetwork){
         stopServer(nameOfNetwork);
-    }
-
-    private void updateTalkersUser(String networkTypeAsk){
-        if (networkTypeAsk.equals("outside")){
-            System.out.println("nb updateTalkersUser outsideTalkers.size(): " + outsideTalkers.size());
-            for (NodeTalker talker : outsideTalkers){
-                talker.updateUser(outsideIp, outsidePort, outsideNetName);
-            }
-        }else if (networkTypeAsk.equals("inside")){
-            System.out.println("nb updateTalkersUser insideTalkers.size(): " + insideTalkers.size());
-            for (NodeTalker talker : insideTalkers){
-                talker.updateUser(insideIp, insidePort, insideNetName);
-            }
-        }else{
-            updateTalkersUser("outside");
-            updateTalkersUser("inside");
-        }
     }
 
     public void startNewMiner(){
@@ -447,25 +420,6 @@ public class NodeBase {
         return true;
     }
 
-//    public boolean addTweet(String tweet, String user, NodeTalker talker){
-//        if (tweet.length() == 0){
-//            return false;
-//        }
-//        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(user, tweet, "2");
-//        System.out.println("NodeBase addTweet() fullTweet: " + fullTweet);
-//        if (fullTweet.isEmpty()){
-//            return false;
-//        }
-//        boolean success = db.addFullTweet(fullTweet);
-//        System.out.println("addTweet success = " + success);
-//        if (!success){
-//            return false;
-//        }else{
-//            propagateTweet(fullTweet, talker);
-//            System.out.println("nb addTweet proptweet");
-//            return true;
-//        }
-//    }
     public boolean updateMyProfile(String profileReport){
         //check if report is not empty
         if (profileReport.length() == 0){
@@ -488,23 +442,6 @@ public class NodeBase {
         return true;
     }
 
-    public boolean updateMyProfileold(String profileTweet){
-        ArrayList<ArrayList> fullTweet = new Construct(db).constructSimpleTx(username, profileTweet, "3");
-        System.out.println("NodeBase addProfileTweet() fullTweet: " + fullTweet);
-        if (fullTweet.isEmpty()){
-            return false;
-        }
-        boolean success = db.addFullTweet(fullTweet);
-        System.out.println("updateMyProfile success = " + success);
-        if (!success){
-            return false;
-        }else{
-            propagateTweet(fullTweet, null);
-            System.out.println("nb updateMyProfile proptweet");
-            return true;
-        }
-    }
-
     public boolean giveTx(String username, String pubKey, int number) {
         //construct report
         Tx tx = new Construct(db).constructGiveTx(username, pubKey, number);
@@ -521,23 +458,6 @@ public class NodeBase {
         //send it to others
         propagateTx(tx, null);
         return true;
-    }
-
-    public boolean giveTxold(String username, String pubKey, String number) {
-        ArrayList<ArrayList> fullTweet = new Construct(db).constructGiveTxold(username, pubKey, number);
-        System.out.println("NodeBase giveTx fullTweet: " + fullTweet);
-        if (fullTweet.isEmpty()){
-            return false;
-        }
-        boolean success = db.addFullTweet(fullTweet);
-        System.out.println("giveTx success = " + success);
-        if (!success){
-            return false;
-        }else{
-            propagateTweet(fullTweet, null);
-            System.out.println("nb giveTx proptweet");
-            return true;
-        }
     }
 
 
@@ -566,39 +486,6 @@ public class NodeBase {
         }
     }
 
-
-
-//    public void addFullTweet(ArrayList<ArrayList> fullTweet, NodeTalker talker){
-//        System.out.println("nb.addFullTweet fullTweet: " + fullTweet);
-//        if (db.addFullTweet(fullTweet)){
-//            propagateTweet(fullTweet, talker);
-//            if (window != null && fullTweet.get(0).get(1).equals("2")){
-//                String txiHash = ((ArrayList<String>)fullTweet.get(2).get(0)).get(1);
-//                String txiTxoIndex = ((ArrayList<String>)fullTweet.get(2).get(0)).get(2);
-//                String tweeterPubKeyHash = db.getPubKeyHashFromTxiHash(txiHash, txiTxoIndex);
-//                boolean doIFollow = db.doIFollow(tweeterPubKeyHash, username);
-//                System.out.println("nb.addFullTweet tweeterHash: " + tweeterPubKeyHash + " doIfollow: " + doIFollow);
-//                if (doIFollow){
-//                    String name = db.getName(tweeterPubKeyHash);
-//                    window.addTweet(name, (String)fullTweet.get(0).get(4));
-//                }
-//            }
-//        }
-//    }
-
-    public void addFullGiveTweet(ArrayList<ArrayList> fullTweet){
-        db.addFullTweet(fullTweet);
-    }
-
-    private void propagateTweet(ArrayList<ArrayList> fullTweet, NodeTalker talker){
-        ArrayList<String> wireReadyTweet = convertFullTweetForWire(fullTweet);
-        for (NodeTalker newGuy : allTalkers){
-            if (newGuy != talker){
-                newGuy.sendTweet(wireReadyTweet);
-            }
-        }
-    }
-
     private void propagateTx(Tx tx, NodeTalker talker){
         ArrayList<String> wireReadyTweet = tx.convertForWire();
         for (NodeTalker newGuy : allTalkers){
@@ -608,57 +495,9 @@ public class NodeBase {
         }
     }
 
-    public ArrayList<String> convertFullTweetForWire(ArrayList<ArrayList> oldFullTweet){
-        System.out.println("NodeBase convertFullTweetForWire oldFullTweet: " + oldFullTweet);
-        ArrayList<String> wireFullTweet = new ArrayList<>();
-        ArrayList<String> tx = oldFullTweet.get(0);
-        ArrayList<ArrayList> txo = oldFullTweet.get(1);
-
-        wireFullTweet.addAll(Arrays.asList(tx.get(0), tx.get(1), tx.get(2), tx.get(3), tx.get(4), tx.get(5)));
-        wireFullTweet.add(String.valueOf(txo.size()));
-
-        for (ArrayList<String> txoInstance : txo){
-            wireFullTweet.add(txoInstance.get(0));
-            wireFullTweet.add(txoInstance.get(1));
-            wireFullTweet.add(txoInstance.get(2));
-        }
-
-        if (!tx.get(1).equals("1")){
-            ArrayList<ArrayList> txi = oldFullTweet.get(2);
-            wireFullTweet.add(String.valueOf(txi.size()));
-            for (ArrayList<String> txiInstance : txi){
-                wireFullTweet.add(txiInstance.get(0));
-                wireFullTweet.add(txiInstance.get(1));
-                wireFullTweet.add(txiInstance.get(2));
-            }
-
-        }
-        return wireFullTweet;
-    }
-
-    public void addHeardBlock(ArrayList<ArrayList> fullBlock, NodeTalker talker){
-        System.out.println("NodeBase addHeardBlock fullBlock: " + fullBlock);
-        if (db.addFullBlock(fullBlock)){
-            propagateBlock(fullBlock, talker);
-        }
-    }
-
     public void addHeardBlock(Block block, NodeTalker talker){
         if (db.addBlock(block)){
             propagateBlock(block, talker);
-        }
-    }
-
-    public void addHeardGiveBlock(ArrayList<ArrayList> fullBlock){
-        System.out.println("NodeBase addHeardBlock fullBlock: " + fullBlock);
-        db.addFullBlock(fullBlock);
-    }
-
-
-    public void addMinedBlock(ArrayList<ArrayList> fullBlock){
-        System.out.println("NodeBase addMinedBlock fullBlock: " + fullBlock);
-        if (db.addFullBlock(fullBlock)){
-            propagateBlock(fullBlock, null);
         }
     }
 
@@ -675,32 +514,6 @@ public class NodeBase {
                 newGuy.sendNewBlock(wireBlock);
             }
         }
-    }
-
-    private void propagateBlock(ArrayList<ArrayList> fullBlock, NodeTalker talker){
-        ArrayList<String> wireBlock = convertFullBlockForWire(fullBlock);
-
-        for (NodeTalker newGuy : allTalkers){
-            if (newGuy != talker){
-                newGuy.sendNewBlock(wireBlock);
-            }
-        }
-    }
-
-    public ArrayList<String> convertFullBlockForWire(ArrayList<ArrayList> fullBlock){
-        ArrayList<String> header = fullBlock.get(0);
-        ArrayList<ArrayList> tweetBase = fullBlock.get(1);
-        ArrayList<String> tx = tweetBase.get(0);
-        ArrayList<String> txo = (ArrayList<String>)tweetBase.get(1).get(0);
-        ArrayList<String> wireBlock = new ArrayList<>();
-        wireBlock.addAll(header);
-        wireBlock.addAll(tx);
-        wireBlock.addAll(txo);
-        if (fullBlock.size() == 3 && !fullBlock.get(2).isEmpty()){
-            ArrayList<String> txList = fullBlock.get(2);
-            wireBlock.addAll(txList);
-        }
-        return wireBlock;
     }
 
     public void stopMiner(){

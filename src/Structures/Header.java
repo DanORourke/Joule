@@ -105,7 +105,7 @@ public class Header {
 
     public boolean underTarget(){
         System.out.println("mined header hash: " + headerHash + "  target: " + target);
-        return headerHash.compareTo(target) == -1;
+        return headerHash.compareTo(target) < 0;
     }
 
     public void resetTarget(SQLiteJDBC db){
