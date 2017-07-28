@@ -33,7 +33,6 @@ public class NodeParty implements Runnable {
     }
 
     private void callOutsideFriends(int maxSize){
-        //TODO use nodeCaller
         ArrayList<ArrayList> friends = db.getFriends("outside");
         ArrayList<NodeTalker> talkers = nb.getOutsideTalkers();
         callFriends(friends, talkers, maxSize, "outside");

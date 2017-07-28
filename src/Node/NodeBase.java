@@ -59,10 +59,10 @@ public class NodeBase {
 
     }
 
-    private void scheduleNetworkCheck(String networkType){
+    private void scheduleNetworkCheck(){
         //call others periodically, start quickly if first time and callEnoughFriends only has the seed network
         int initialDelay = ((db.getFirstTime()) ? 5 : 60);
-        //reset server every so often
+        //call others every so often
         ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(1);
 
@@ -773,7 +773,7 @@ public class NodeBase {
         //start listening for others
         startNewServer(networkType);
         //setup periodic calling of friends
-        scheduleNetworkCheck(networkType);
+        scheduleNetworkCheck();
     }
 
     public int getBlockChainHeight(){

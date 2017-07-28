@@ -64,9 +64,9 @@ public class Verify {
             return false;
         }
         //check each tx is okay to be in this block, inputs/outputs align
-        String previousBlock = block.getHeader().getPreviousHash();
-        for (String txHash: allTxHashList){
-            if (!db.isTxAcceptableForBlock(txHash, previousBlock)){
+        String previousBlockHash = block.getHeader().getPreviousHash();
+        for (Tx tx: allTx.getAllTx()){
+            if (!db.isTxAcceptableForBlock(tx, previousBlockHash)){
                 return false;
             }
         }

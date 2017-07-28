@@ -644,7 +644,7 @@ public class SQLiteJDBC {
 
     public synchronized Header getHeader(String headerHash){
         Statement stmt = null;
-        Header header = new Header();
+        Header header = new Header(false);
         try {
             stmt = c.createStatement();
             c.setAutoCommit(false);
@@ -730,7 +730,7 @@ public class SQLiteJDBC {
         return keys;
     }
 
-    public synchronized AllTxi getNewGiveAllTxi(String username, int numbnerToGive){
+    public synchronized AllTxi getNewGiveAllTxi(String username, int numberToGive){
         AllTxi allTxi = new AllTxi();
         Statement stmt = null;
         try {
@@ -750,7 +750,7 @@ public class SQLiteJDBC {
                 while(i < totalNeeded && rs.next()){
                     if (loop == 0){
                         int reportReward = rs.getInt("REPORTREWARD");
-                        totalNeeded = reportReward + numbnerToGive;
+                        totalNeeded = reportReward + numberToGive;
                         allTxi.setReportReward(reportReward);
                         allTxi.setPubKey(rs.getString("PUBKEY"));
                         allTxi.setPrivKey(rs.getString("PRIVKEY"));
@@ -789,17 +789,20 @@ public class SQLiteJDBC {
                     "OPENTXOTABLE.HEADERHASH IN (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1) " +
                     "ORDER BY OPENTXOTABLE.ID ASC;");
             if (rs.isBeforeFirst()){
-                int totalNeeded = rs.getInt("REPORTREWARD");
-                allTxi.setReportReward(totalNeeded);
-                allTxi.setPubKey(rs.getString("PUBKEY"));
-                allTxi.setPrivKey(rs.getString("PRIVKEY"));
-                allTxi.addTxi(new Txi(rs.getString("TXHASH"),
-                        rs.getInt("TXOINDEX")));
-                int i = rs.getInt("COINNUMBER");
+                int i = 0;
+                int loop = 0;
+                int totalNeeded = 1;
                 while(i < totalNeeded && rs.next()){
+                    if (loop == 0){
+                        totalNeeded =  rs.getInt("REPORTREWARD");
+                        allTxi.setReportReward(totalNeeded);
+                        allTxi.setPubKey(rs.getString("PUBKEY"));
+                        allTxi.setPrivKey(rs.getString("PRIVKEY"));
+                    }
                     allTxi.addTxi(new Txi(rs.getString("TXHASH"),
-                            rs.getInt("TXHASH")));
+                            rs.getInt("TXOINDEX")));
                     i += rs.getInt("COINNUMBER");
+                    loop++;
                 }
                 // make sure have enough joules to spend
                 if (i >= totalNeeded){
@@ -847,73 +850,146 @@ public class SQLiteJDBC {
         return false;
     }
 
-    public synchronized boolean isTxAcceptableForBlock(String txHash, String previousBlock){
-        String txInputHash = getTxiHash(txHash);
-        if (txInputHash == null){
-            return false;
-        }
-        ArrayList<String> previousHeader = getBlockHeader(previousBlock);
-        ArrayList<String> chainInfo = new ArrayList<>();
-        if (previousHeader.isEmpty()){
+    public synchronized boolean isTxAcceptableForBlock(Tx tx, String previousBlockHash){
+        Header previousHeader = getHeader(previousBlockHash);
+        if (!previousHeader.isProper()){
             System.out.println("db.isTxAcceptableForBlock previousHeader empty");
             return false;
         }
-        chainInfo.add(previousHeader.get(1));
-        chainInfo.add(previousHeader.get(0));
-        System.out.println("db.isTxAcceptableForBlock txInputHash: " + txInputHash);
-        return isTxAcceptable(txInputHash, chainInfo);
-    }
 
-    private synchronized String getTxiHash(String txHash){
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT TXIHASH FROM TXITABLE WHERE TXHASH = '" + txHash + "';");
-            if (rs.isBeforeFirst()){
-                return rs.getString("TXIHASH");
-            }
-            stmt.close();
-            rs.close();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private synchronized boolean isTxAcceptable(String txHash, ArrayList<String> chainInfo){
-        ArrayList<String> headerHashWhenTxi = getHeaderHashWhenTxi(txHash);
-        ArrayList<String> headerHashOfTx = getHeaderHashOfTx(txHash);
-        System.out.println("db.isTxAcceptable headerHashes WhenTxi: " + headerHashWhenTxi +
-                "\n OfTx: " + headerHashOfTx);
-        System.out.println("db.isTxAcceptable txHash and chainInfo: " + txHash + chainInfo);
-        if (headerHashOfTx.get(0).equals("no")){
-            return false;
-        }
-        if (!headerHashWhenTxi.get(0).equals("no")){
-            for (int i = 0; i < headerHashWhenTxi.size(); i+=2){
-                if (!headerHashWhenTxi.get(i).equals(headerHashOfTx.get(0))) {
-                    if (inSameChain(headerHashWhenTxi.get(i), headerHashWhenTxi.get(i + 1), chainInfo.get(1), chainInfo.get(0))) {
-                        return false;
-                    }
-                }
-            }
-        }
-        for (int i = 0; i < headerHashOfTx.size(); i+=2){
-            if (!inSameChain(headerHashOfTx.get(i), headerHashOfTx.get(i+1), chainInfo.get(1), chainInfo.get(0))){
+        for (Txi txi : tx.getAllTxi().getAllTxi()){
+            System.out.println("db.isTxAcceptableForBlock txiHash: " + txi.getTxiHash());
+            //check if txi is in a parent block of the header and not spent somewhere else in the same chain
+            if (!isTxiAcceptable(txi, previousHeader)){
                 return false;
             }
         }
         return true;
     }
 
-    private synchronized boolean inSameChain(String firstHeader, String firstHeightString,
-                                String secondHeader, String secondHeightString){
-        System.out.println("db.inSameChain firstHeader: " + firstHeader + " firstHeightString: " + firstHeightString +
-                " secondHeader: " + secondHeader + " SecondHeightString:" + secondHeightString);
-        int firstHeight = Integer.valueOf(firstHeightString);
-        int secondHeight = Integer.valueOf(secondHeightString);
+//    private synchronized ArrayList<String> getTxiHash(String txHash){
+//        ArrayList<String> txiHashes = new ArrayList<>();
+//        Statement stmt = null;
+//        try {
+//            c.setAutoCommit(false);
+//            stmt = c.createStatement();
+//            ResultSet rs = stmt.executeQuery("SELECT TXIHASH FROM TXITABLE WHERE TXHASH = '" + txHash + "';");
+//            if (rs.isBeforeFirst()){
+//                while (rs.next()){
+//                    txiHashes.add(rs.getString("TXIHASH"));
+//                }
+//            }
+//            stmt.close();
+//            rs.close();
+//
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//        return txiHashes;
+//    }
+
+    private synchronized boolean isTxiAcceptable(Txi txi, Header previousHeader){
+        //check if txi is in a parent block
+        ArrayList<Header> txiHeaders = getHeaderOfTx(txi.getTxiHash());
+        for (Header header : txiHeaders){
+            if (!inSameChain(header.getHeaderHash(), header.getHeight(),
+                    previousHeader.getHeaderHash(),previousHeader.getHeight())){
+                return false;
+            }
+        }
+        //check if txi has been spent somewhere else in a parent block
+        ArrayList<Header> otherTxiHeaders = getHeaderOfCompetingTxi(txi);
+        for (Header header : otherTxiHeaders){
+            if (inSameChain(header.getHeaderHash(), header.getHeight(),
+                    previousHeader.getHeaderHash(),previousHeader.getHeight())){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private synchronized ArrayList<Header> getHeaderOfCompetingTxi(Txi txi){
+        ArrayList<Header> headers = new ArrayList<>();
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+            c.setAutoCommit(false);
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE HEADERHASH IN " +
+                    "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH IN " +
+                    "(SELECT TXHASH FROM TXITABLE WHERE " +
+                    "TXIHASH = '" + txi.getTxiHash() + "' AND " +
+                    "TXITXOINDEX = " + txi.getTxiTxoIndex() + " AND " +
+                    "TXHASH != '" + txi.getTxHash() + "'));");
+            if (rs.isBeforeFirst()){
+                while(rs.next()){
+                    headers.add(new Header(rs.getString("HEADERHASH"), rs.getInt("HEIGHT"),
+                            rs.getString("MERKLEROOT"), rs.getString("PREVIOUSHASH"),
+                            rs.getString("TARGET"), rs.getInt("NONCE")));
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return headers;
+    }
+
+    private synchronized ArrayList<Header> getHeaderOfTx(String txHash){
+        ArrayList<Header> headers = new ArrayList<>();
+        Statement stmt = null;
+        try {
+            stmt = c.createStatement();
+            c.setAutoCommit(false);
+            ResultSet rs = stmt.executeQuery( "SELECT * FROM BLOCKCHAIN WHERE " +
+                    "HEADERHASH IN " +
+                    "(SELECT HEADERHASH FROM MAPTABLE WHERE " +
+                    "TXHASH = '" + txHash + "');");
+            if (rs.isBeforeFirst()){
+                while(rs.next()){
+                    headers.add(new Header(rs.getString("HEADERHASH"), rs.getInt("HEIGHT"),
+                            rs.getString("MERKLEROOT"), rs.getString("PREVIOUSHASH"),
+                            rs.getString("TARGET"), rs.getInt("NONCE")));
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return headers;
+    }
+
+//    private synchronized boolean isTxAcceptable(String txHash, ArrayList<String> chainInfo){
+//        ArrayList<String> headerHashWhenTxi = getHeaderHashWhenTxi(txHash);
+//        ArrayList<String> headerHashOfTx = getHeaderHashOfTx(txHash);
+//        System.out.println("db.isTxAcceptable headerHashes WhenTxi: " + headerHashWhenTxi +
+//                "\n OfTx: " + headerHashOfTx);
+//        System.out.println("db.isTxAcceptable txHash and chainInfo: " + txHash + chainInfo);
+//        if (headerHashOfTx.get(0).equals("no")){
+//            return false;
+//        }
+//        if (!headerHashWhenTxi.get(0).equals("no")){
+//            for (int i = 0; i < headerHashWhenTxi.size(); i+=2){
+//                if (!headerHashWhenTxi.get(i).equals(headerHashOfTx.get(0))) {
+//                    if (inSameChain(headerHashWhenTxi.get(i), headerHashWhenTxi.get(i + 1), chainInfo.get(1), chainInfo.get(0))) {
+//                        return false;
+//                    }
+//                }
+//            }
+//        }
+//        for (int i = 0; i < headerHashOfTx.size(); i+=2){
+//            if (!inSameChain(headerHashOfTx.get(i), headerHashOfTx.get(i+1), chainInfo.get(1), chainInfo.get(0))){
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
+
+    private synchronized boolean inSameChain(String firstHeader, int firstHeight,
+                                String secondHeader, int secondHeight){
+        System.out.println("db.inSameChain firstHeader: " + firstHeader + " firstHeight: " + firstHeight +
+                " secondHeader: " + secondHeader + " SecondHeight:" + secondHeight);
         int difference = secondHeight - firstHeight;
         if (difference < 0){
             return false;
@@ -950,61 +1026,61 @@ public class SQLiteJDBC {
         return sql;
     }
 
-    private synchronized ArrayList<String> getHeaderHashOfTx(String txHash){
-        ArrayList<String> headerHashOfTxi = new ArrayList<>();
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEADERHASH IN " +
-                    "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH = '" + txHash + "');");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    headerHashOfTxi.addAll(Arrays.asList(rs.getString("HEADERHASH"),
-                            String.valueOf(rs.getInt("HEIGHT"))));
-                }
-                stmt.close();
-                rs.close();
-                return headerHashOfTxi;
-            }
-            stmt.close();
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        headerHashOfTxi.add("no");
-        return headerHashOfTxi;
+//    private synchronized ArrayList<String> getHeaderHashOfTx(String txHash){
+//        ArrayList<String> headerHashOfTxi = new ArrayList<>();
+//        Statement stmt = null;
+//        try {
+//            c.setAutoCommit(false);
+//            stmt = c.createStatement();
+//            ResultSet rs = stmt.executeQuery("SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEADERHASH IN " +
+//                    "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH = '" + txHash + "');");
+//            if (rs.isBeforeFirst()){
+//                while (rs.next()){
+//                    headerHashOfTxi.addAll(Arrays.asList(rs.getString("HEADERHASH"),
+//                            String.valueOf(rs.getInt("HEIGHT"))));
+//                }
+//                stmt.close();
+//                rs.close();
+//                return headerHashOfTxi;
+//            }
+//            stmt.close();
+//            rs.close();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//        headerHashOfTxi.add("no");
+//        return headerHashOfTxi;
+//
+//    }
 
-    }
-
-    private synchronized ArrayList<String> getHeaderHashWhenTxi(String txHash){
-        ArrayList<String> headerHashWhenTxi = new ArrayList<>();
-        System.out.println("db.getHeaderHashWhenTxi txHash:  " + txHash);
-        Statement stmt = null;
-        try {
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEADERHASH IN " +
-                    "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH IN " +
-                    "(SELECT TXHASH FROM TXITABLE WHERE TXIHASH = '" + txHash +"'));");
-            if (rs.isBeforeFirst()){
-                while (rs.next()){
-                    headerHashWhenTxi.addAll(Arrays.asList(rs.getString("HEADERHASH"),
-                            String.valueOf(rs.getInt("HEIGHT"))));
-                }
-                rs.close();
-                stmt.close();
-                System.out.println("db.getHeaderHashWhenTxi headerHashWhenTxi:  " + headerHashWhenTxi);
-                return headerHashWhenTxi;
-            }
-            stmt.close();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        headerHashWhenTxi.add("no");
-        return headerHashWhenTxi;
-    }
+//    private synchronized ArrayList<String> getHeaderHashWhenTxi(String txHash){
+//        ArrayList<String> headerHashWhenTxi = new ArrayList<>();
+//        System.out.println("db.getHeaderHashWhenTxi txHash:  " + txHash);
+//        Statement stmt = null;
+//        try {
+//            c.setAutoCommit(false);
+//            stmt = c.createStatement();
+//            ResultSet rs = stmt.executeQuery("SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEADERHASH IN " +
+//                    "(SELECT HEADERHASH FROM MAPTABLE WHERE TXHASH IN " +
+//                    "(SELECT TXHASH FROM TXITABLE WHERE TXIHASH = '" + txHash +"'));");
+//            if (rs.isBeforeFirst()){
+//                while (rs.next()){
+//                    headerHashWhenTxi.addAll(Arrays.asList(rs.getString("HEADERHASH"),
+//                            String.valueOf(rs.getInt("HEIGHT"))));
+//                }
+//                rs.close();
+//                stmt.close();
+//                System.out.println("db.getHeaderHashWhenTxi headerHashWhenTxi: " + headerHashWhenTxi);
+//                return headerHashWhenTxi;
+//            }
+//            stmt.close();
+//
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
+//        headerHashWhenTxi.add("no");
+//        return headerHashWhenTxi;
+//    }
 
     public synchronized String getName(String pubKeyHash){
         String name = "NA";
@@ -1742,7 +1818,7 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.REPORT, " +
+            ResultSet rs = stmt.executeQuery( "SELECT DISTINCT TXTABLE.TXHASH, TXTABLE.REPORT, " +
                     "PROFILETABLE.NAME, PROFILETABLE.PUBKEYHASH " +
                     "FROM TXTABLE LEFT OUTER JOIN TXITABLE ON TXTABLE.TXHASH = TXITABLE.TXHASH " +
                     "LEFT OUTER JOIN TXOTABLE ON TXITABLE.TXIHASH = TXOTABLE.TXHASH " +
@@ -1770,7 +1846,7 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TXTABLE.TXHASH, TXTABLE.REPORT, " +
+            ResultSet rs = stmt.executeQuery( "SELECT DISTINCT TXTABLE.TXHASH, TXTABLE.REPORT, " +
                     "PROFILETABLE.NAME, PROFILETABLE.PUBKEYHASH " +
                     "FROM TXTABLE LEFT OUTER JOIN TXITABLE ON TXTABLE.TXHASH = TXITABLE.TXHASH " +
                     "LEFT OUTER JOIN TXOTABLE ON TXITABLE.TXIHASH = TXOTABLE.TXHASH " +

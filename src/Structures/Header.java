@@ -16,9 +16,13 @@ public class Header {
     private String previousHash;
     private String target;
     private int nonce;
+    private boolean proper = true;
 
     public Header(){
+    }
 
+    public Header(boolean proper){
+        this.proper = proper;
     }
 
     public Header(String headerHash, int height, String merkleRoot,
@@ -131,5 +135,13 @@ public class Header {
         System.out.println("HEADER   headerHash " + headerHash + " height " + height +
                 " merkleRoot " + merkleRoot + " previousHash " + previousHash +
                 " target " + target + " nonce " + nonce);
+    }
+
+    public boolean isProper() {
+        return proper;
+    }
+
+    public void setProper(boolean proper) {
+        this.proper = proper;
     }
 }
