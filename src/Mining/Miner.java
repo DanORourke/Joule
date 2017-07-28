@@ -66,10 +66,11 @@ public class Miner implements Runnable {
                         if (found && !reset){
                             //verify, add to db, and broadcast new block
                             sendBlock(partialBlock);
+                            reset = true;
                         }else {
                             //Wait so as to not bog down my machine
                             try {
-                                Thread.sleep(100);
+                                Thread.sleep(1000);
                             } catch (InterruptedException e) {
                                 System.out.println("Miner sleep interrupted while mining");
                                 active = false;

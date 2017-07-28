@@ -10,13 +10,13 @@ public class Tx extends TxSuper{
 
     public Tx(){
         super();
-        allTxi = new AllTxi();
+        this.allTxi = new AllTxi();
         this.proper = true;
     }
 
     public Tx(String hash, int type, String signature, int reportLength, String report, int numberToMiner){
         super(hash, type, signature, reportLength, report, numberToMiner);
-        allTxi = new AllTxi();
+        this.allTxi = new AllTxi();
         this.proper = true;
     }
 
@@ -30,6 +30,7 @@ public class Tx extends TxSuper{
     public Tx(String txHash) {
         super();
         setHash(txHash);
+        this.allTxi = new AllTxi();
         this.proper = true;
     }
 

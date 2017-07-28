@@ -6,11 +6,18 @@ public class Block {
     private Header header;
     private JouleBase jouleBase;
     private AllTx allTx;
+    private boolean proper = true;
+    private ArrayList<String> missingTx;
 
     public Block(){
         header = new Header();
         jouleBase = new JouleBase();
         allTx = new AllTx();
+    }
+
+    public Block(boolean proper, ArrayList<String> missingTx){
+        this.proper = proper;
+        this.missingTx = missingTx;
     }
 
     public Block(Header header, JouleBase base, AllTx allTx){
@@ -86,5 +93,21 @@ public class Block {
         header.printHeader();
         jouleBase.printJouleBase();
         allTx.printAllTx();
+    }
+
+    public boolean isProper() {
+        return proper;
+    }
+
+    public void setProper(boolean proper) {
+        this.proper = proper;
+    }
+
+    public ArrayList<String> getMissingTx() {
+        return missingTx;
+    }
+
+    public void setMissingTx(ArrayList<String> missingTx) {
+        this.missingTx = missingTx;
     }
 }

@@ -110,6 +110,9 @@ public class Construct {
         if (pubKey.length() == 64){
             pubKey = db.getPubKeyFromHash(pubKey);
         }
+        if (pubKey.length() != 100){
+            return new Tx(false);
+        }
         if (pubKey.equals("NA")){
             return new Tx(false);
         }

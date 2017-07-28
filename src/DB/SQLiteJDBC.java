@@ -47,7 +47,7 @@ public class SQLiteJDBC {
         pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
                 "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
-        seedTime = 1493558407121L;
+        seedTime = 1501172162121L;
         seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
@@ -346,7 +346,6 @@ public class SQLiteJDBC {
         String asdPrivKey = "MDkCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEHzAdAgEBBBjSbOVB7EEdAo+Whh7BdT2tGKsSR9UEIUc=";
         String asdCoinPerTweet = "1";
         addUser(asdName, asdSalt, asdHash, pubKey1, asdPrivKey, pubKey1Hash, asdCoinPerTweet);
-
     }
 
     private synchronized void createUserTable(){
@@ -643,7 +642,7 @@ public class SQLiteJDBC {
         return new JouleBase();
     }
 
-    private synchronized Header getHeader(String headerHash){
+    public synchronized Header getHeader(String headerHash){
         Statement stmt = null;
         Header header = new Header();
         try {
@@ -1058,12 +1057,11 @@ public class SQLiteJDBC {
 
     public synchronized String getPubKeyFromHash(String pubKeyHash) {
         String pubKey = "";
-        Statement stmt = null;
         try {
             c.setAutoCommit(false);
-            stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT PUBKEY FROM PROFILETABLE WHERE PUBKEYHASH = '" +
-                    pubKeyHash + "';");
+            PreparedStatement stmt = c.prepareStatement( "SELECT PUBKEY FROM PROFILETABLE WHERE PUBKEYHASH = ?;");
+            stmt.setString(1, pubKeyHash);
+            ResultSet rs = stmt.executeQuery();
             if (rs.isBeforeFirst()){
                 pubKey = rs.getString("PUBKEY");
             }else {
@@ -2054,12 +2052,12 @@ public class SQLiteJDBC {
         try {
             c.setAutoCommit(false);
             stmt = c.createStatement();
-            ResultSet rs = stmt.executeQuery( "SELECT TWEET FROM TXTABLE WHERE TXHASH = " +
+            ResultSet rs = stmt.executeQuery( "SELECT REPORT FROM TXTABLE WHERE TXHASH = " +
                     "(SELECT TXHASH FROM MAPTABLE WHERE TXINDEX = 0 AND " +
                     "HEADERHASH = (SELECT HEADERHASH FROM BLOCKCHAIN WHERE CHAIN = 1 " +
                     "AND HEIGHT = " + height + " ));");
             if (rs.isBeforeFirst()){
-                long time = Long.parseLong(rs.getString("TWEET"));
+                long time = Long.parseLong(rs.getString("REPORT"));
                 rs.close();
                 stmt.close();
                 return time;

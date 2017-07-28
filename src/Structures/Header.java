@@ -109,28 +109,9 @@ public class Header {
     }
 
     public void resetTarget(SQLiteJDBC db){
-        BigInteger time1 = BigInteger.valueOf(db.getTimeOfPastBlock(height - 1));
-        BigInteger time100 = BigInteger.valueOf(db.getTimeOfPastBlock(height - 100));
-        BigInteger timeDifference = time1.subtract(time100);
-        //10 minute goal time per block
-        BigInteger goalTime = BigInteger.valueOf(99*10*60*1000);
-        BigInteger oldTarget = new BigInteger(target,16);
-        BigInteger holdingPattern = timeDifference.multiply(oldTarget);
-        BigInteger newTarget = holdingPattern.divide(goalTime);
-        String output = newTarget.toString(16);
-        System.out.println("construct calcTarget output: " + output + " time1:" + time1 + " time100: " + time100 +
-                " difference: " + timeDifference + " goaltime: " + goalTime);
-        //make sure target is 64 digits long with at least 2 leading zeros
-        if (output.length() > 62){
-            System.out.println("construct calcTarget output too big");
-            target =  "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        }else{
-            while (output.length() < 64){
-                output = "0"+output;
-            }
-            target = output;
-        }
-
+        long time1 = db.getTimeOfPastBlock(height - 1);
+        long time100 = db.getTimeOfPastBlock(height - 100);
+        target = new MathStuff().calculateTarget(time1, time100, target);
     }
 
     public boolean correctHash() {

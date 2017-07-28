@@ -129,11 +129,23 @@ public class Verify {
     }
 
     private boolean isHeaderVerified(Block block){
-        //TODO check that target is correct target
         Header header = block.getHeader();
         //test if previous hash and height check out
-        if (!db.checkBlockHeader(header.getPreviousHash(), header.getHeight() - 1)){
-            return false;
+        if (header.getHeight()%100 == 0){
+            Header oldHeader = db.getHeader(header.getPreviousHash());
+            long time1 = db.getTimeOfPastBlock(oldHeader.getHeight());
+            long time100 = db.getTimeOfPastBlock(header.getHeight() - 100);
+            String oldTarget = oldHeader.getTarget();
+            String target = new MathStuff().calculateTarget(time1, time100, oldTarget);
+            if (!header.getTarget().equals(target)){
+                System.out.println("time1: " + time1 + " time100: " + time100 +
+                        " oldTarget: " + oldTarget + " target: " + target);
+                return false;
+            }
+        }else{
+            if (!db.checkBlockHeader(header.getPreviousHash(), header.getHeight() - 1)){
+                return false;
+            }
         }
         //test hash is correct
         if (!header.correctHash()){

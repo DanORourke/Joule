@@ -1,5 +1,6 @@
 package ReadWrite;
 
+import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
@@ -88,6 +89,30 @@ public class MathStuff {
         return convertByteToHex(byteData);
 
 
+    }
+
+    public String calculateTarget(long height1, long height100, String oldTargetString){
+        BigInteger time1 = BigInteger.valueOf(height1);
+        BigInteger time100 = BigInteger.valueOf(height100);
+        BigInteger timeDifference = time1.subtract(time100);
+        //10 minute goal time per block
+        BigInteger goalTime = BigInteger.valueOf(99*10*60*1000);
+        BigInteger oldTarget = new BigInteger(oldTargetString,16);
+        BigInteger holdingPattern = timeDifference.multiply(oldTarget);
+        BigInteger newTarget = holdingPattern.divide(goalTime);
+        String output = newTarget.toString(16);
+        System.out.println("construct calcTarget output: " + output + " time1:" + time1 + " time100: " + time100 +
+                " difference: " + timeDifference + " goaltime: " + goalTime);
+        //make sure target is 64 digits long with at least 2 leading zeros
+        if (output.length() > 62){
+            System.out.println("construct calcTarget output too big");
+            return "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        }else{
+            while (output.length() < 64){
+                output = "0"+output;
+            }
+            return output;
+        }
     }
 
     private String convertByteToHex(byte[] byteData){
