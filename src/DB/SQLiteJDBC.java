@@ -44,10 +44,10 @@ public class SQLiteJDBC {
         //set up db if first time opened, boolean firstTime affects network procedure
         Statement stmt = null;
         //set up first block info
-        pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEeQUp" +
-                "DfRodKm9cLA1ZlsjsuP3n/bXuxo+GpVoavLgcI4prhyRBzCRfcAqtjjdWO2r";
+        pubKey1  = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAE8JX01CgitQi8cAR15nsgU/" +
+                "gFEZoX3jDMcWe9OhbqTOPM2dwPjM90oK3o6rCZu3Ks";
         pubKey1Hash = new MathStuff().createHash(pubKey1);
-        seedTime = 1501172162121L;
+        seedTime = 1501346790121L;
         seedTarget = "00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         try {
             c.setAutoCommit(false);
@@ -328,7 +328,7 @@ public class SQLiteJDBC {
         try {
             stmt = c.createStatement();
             String sql = "INSERT INTO FRIENDS (IP,PORT,NETNAME, NAMEOFNETWORK) VALUES " +
-                    "('73.246.234.225', '54321', 'Joule', 'outside');";
+                    "('73.246.234.225', 54332, 'Joule', 'outside');";
             stmt.executeUpdate(sql);
             stmt.close();
             c.commit();
@@ -339,13 +339,7 @@ public class SQLiteJDBC {
     }
 
     private synchronized void addSeedUsers(){
-        //alternateFollow(pubKey1Hash, "YES", "asd");
-        String asdName = "asd";
-        String asdSalt = "9608756233693360688593294264682270";
-        String asdHash = "7e9ae91dd29b15ee423d9ca3c8c3cb378fbabdf5370c16629cc6314685414a92";
-        String asdPrivKey = "MDkCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEHzAdAgEBBBjSbOVB7EEdAo+Whh7BdT2tGKsSR9UEIUc=";
-        String asdCoinPerTweet = "1";
-        addUser(asdName, asdSalt, asdHash, pubKey1, asdPrivKey, pubKey1Hash, asdCoinPerTweet);
+
     }
 
     private synchronized void createUserTable(){
@@ -1811,7 +1805,7 @@ public class SQLiteJDBC {
         }
         return tweets;
     }
-
+    //TODO make these only show reports in the main chain
     public synchronized ArrayList<String> getPastTweetsResults(String pubKeyHash, int startingPoint){
         ArrayList<String> tweets = new ArrayList<>();
         Statement stmt = null;
