@@ -178,10 +178,12 @@ public class NetworkTab extends Tab {
             @Override
             public void handle(ActionEvent e) {
                 String myNetName =  netNameField.getText();
-                if (myNetName.length() >= 2){
-                    db.updateNetName(username, myNetName, networkName);
+                if (myNetName.length() >= 2 && db.updateNetName(username, myNetName, networkName)){
                     nb.updateMyNetName(myNetName, networkName);
-                    resetServerLabel();
+                    Timeline timeline = new Timeline(new KeyFrame(
+                            Duration.millis(2500),
+                            ae -> resetServerLabel()));
+                    timeline.play();
                     netNameField.clear();
                     target.setFill(Color.BLACK);
                     target.setText("NetName Updated");
@@ -288,8 +290,9 @@ public class NetworkTab extends Tab {
         if (serverInfo.isEmpty()){
             serverText = "Server Not Listening";
         }else{
-            serverText = "Server IP: " + serverInfo.get(0) + " Port: " + serverInfo.get(1) +
-                    " NetName: " + serverInfo.get(2);
+//            serverText = "Server IP: " + serverInfo.get(0) + " Port: " + serverInfo.get(1) +
+//                    " NetName: " + serverInfo.get(2);
+            serverText = "Server listening on port " + serverInfo.get(1);
         }
         serverLabel.setText(serverText);
     }

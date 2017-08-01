@@ -40,7 +40,6 @@ public class NodeCaller extends Thread{
     }
 
     public void run(){
-        //System.out.println("NodeCaller called" + " " + myIp + " " + friendIp + " " + myPort + " " + friendPort);
         if (!myIp.equals(friendIp) || myPort != friendPort){
             try {
                 Socket socket = new Socket();

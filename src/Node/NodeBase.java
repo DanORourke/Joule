@@ -39,7 +39,6 @@ public class NodeBase {
     private Miner miner;
     private NodeServer outsideServer;
     private NodeServer insideServer;
-    //private long oldTime;
 
     public NodeBase(SQLiteJDBC db){
         this(db, "outside", null);
@@ -165,6 +164,7 @@ public class NodeBase {
     }
 
     private void setIpPort(String networkType, boolean firstTImeThrough){
+        System.out.println("setIpPort netType: " + networkType + " firstTime: " + firstTImeThrough);
         //set network variables
         if (username == null){
             setDefaultOutsideIpPort();
@@ -217,7 +217,7 @@ public class NodeBase {
             }
         }else if (networkType.equals("both")){
             setIpPort("outside", false);
-            setIpPort(nameOfInsideNetwork, false);
+            setIpPort("inside", false);
         }
 
         System.out.println("outsideIp: " + outsideIp + " outsidePort: " + outsidePort +
@@ -675,11 +675,13 @@ public class NodeBase {
             for (NodeTalker talker : outsideTalkers){
                 talker.setMyNetName(outsideNetName);
             }
+            newServer("outside");
         }else {
             insideNetName = newNetName;
             for (NodeTalker talker : insideTalkers){
                 talker.setMyNetName(insideNetName);
             }
+            newServer("inside");
         }
     }
 

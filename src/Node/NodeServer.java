@@ -25,8 +25,12 @@ public class NodeServer implements Runnable  {
     }
 
     public void run(){
-        setListener(myPort);
-        hearFriends();
+        if (myPort != 0){
+            setListener();
+            hearFriends();
+        }else{
+            nb.serverFailed(networkType);
+        }
     }
 
     private void setInfo(){
@@ -53,11 +57,12 @@ public class NodeServer implements Runnable  {
         return info;
     }
 
-    private void setListener(int listenPort){
+    private void setListener(){
+
         try {
-            listener = new ServerSocket(listenPort);
-            // trying to fix freezing issues, turn this off, not sure why I want it anyway
-            //listener.setSoTimeout(1000);
+            listener = new ServerSocket(myPort);
+            // allows !stop to work hearFriends loop
+            listener.setSoTimeout(1000);
 
         } catch (BindException e) {
             System.out.println("SERVER JVM_Bind Exception");
@@ -89,22 +94,23 @@ public class NodeServer implements Runnable  {
             } catch (SocketTimeoutException e) {
             } catch (IOException e) {
                 e.printStackTrace();
-                // trying to fix freezing issues
                 try {
                     System.out.println("NodeServer listener.close() Ip: " + myIp + " myPort: " + myPort +
                             " myNetName: " + myNetName);
                     listener.close();
-                    setListener(myPort);
+                    setListener();
                 } catch (IOException e2) {
                     e2.printStackTrace();
-                    setListener(myPort);
+                    setListener();
                 }
             }
         }
         try {
-            listener.close();
-            System.out.println("NodeServer listener.close() Ip: " + myIp + " myPort: " + myPort +
-                    " myNetName: " + myNetName);
+            if (listener != null){
+                listener.close();
+                System.out.println("NodeServer listener.close() Ip: " + myIp + " myPort: " + myPort +
+                        " myNetName: " + myNetName);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

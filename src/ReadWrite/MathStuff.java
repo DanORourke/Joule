@@ -101,11 +101,12 @@ public class MathStuff {
         BigInteger holdingPattern = timeDifference.multiply(oldTarget);
         BigInteger newTarget = holdingPattern.divide(goalTime);
         String output = newTarget.toString(16);
-        System.out.println("construct calcTarget output: " + output + " time1:" + time1 + " time100: " + time100 +
-                " difference: " + timeDifference + " goaltime: " + goalTime);
+        System.out.println("MathStuff calcTarget oldTarget: " + oldTargetString + " output: " + output +
+                " time1:" + time1 + " time100: " + time100 +
+                " timeDifference: " + timeDifference + " goaltime: " + goalTime);
         //make sure target is 64 digits long with at least 2 leading zeros
         if (output.length() > 62){
-            System.out.println("construct calcTarget output too big");
+            System.out.println("MathStuff calcTarget output too big");
             return "00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         }else{
             while (output.length() < 64){
