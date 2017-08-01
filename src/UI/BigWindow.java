@@ -1157,9 +1157,8 @@ public class BigWindow {
                 ArrayList<ArrayList> profiles = db.searchProfileAbout(about, lastSearchStartNumber);
                 if (profiles.isEmpty()){
                     lastSearchStartNumber = 0;
+                    profiles = db.searchProfileAbout(about, lastSearchStartNumber);
                 }
-                profiles = db.searchProfileAbout(about, lastSearchStartNumber);
-
                 data.clear();
                 System.out.println("Window createSearchTable nameBtn profiles: " + profiles);
                 for (ArrayList<String> profile : profiles) {
@@ -1188,8 +1187,8 @@ public class BigWindow {
                 ArrayList<ArrayList> pastTweets = db.searchTweets(tweet, lastSearchStartNumber);
                 if (pastTweets.isEmpty()){
                     lastSearchStartNumber = 0;
+                    pastTweets = db.searchTweets(tweet, lastSearchStartNumber);
                 }
-                pastTweets = db.searchTweets(tweet, lastSearchStartNumber);
                 results.setText(createSearchTweetsResults(pastTweets));
             }
         });
@@ -1231,8 +1230,8 @@ public class BigWindow {
                 ArrayList<ArrayList> profiles = db.searchProfileName(name, lastSearchStartNumber);
                 if (profiles.isEmpty()){
                     lastSearchStartNumber = 0;
+                    profiles = db.searchProfileName(name, lastSearchStartNumber);
                 }
-                profiles = db.searchProfileAbout(name, lastSearchStartNumber);
                 data.clear();
                 System.out.println("Window createSearchTable nameBtn profiles: " + profiles);
                 for (ArrayList<String> profile : profiles) {
