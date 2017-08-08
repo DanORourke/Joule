@@ -1325,7 +1325,6 @@ public class SQLiteJDBC {
             ResultSet rs = stmt.executeQuery( "SELECT HEADERHASH, HEIGHT FROM BLOCKCHAIN WHERE HEIGHT = " +
                     "(SELECT MAX(HEIGHT) FROM BLOCKCHAIN);");
             if (rs.isBeforeFirst()){
-                info.add(String.valueOf(rs.getInt("HEIGHT")));
                 while (rs.next()){
                     info.add(rs.getString("HEADERHASH"));
                 }
@@ -1339,21 +1338,20 @@ public class SQLiteJDBC {
     }
 
     private synchronized void resetChainLoop(ArrayList<String> highestHeaders){
-        int height = Integer.valueOf(highestHeaders.get(0));
-        highestHeaders.remove(0);
+
         int i = highestHeaders.size() - 1;
         while (i >= 0){
             if (i != 0){
-                resetChain2(highestHeaders.get(i), height);
+                resetChain(2, highestHeaders.get(i));
             }else{
-                resetChain1(highestHeaders.get(i), height);
+                resetChain(1, highestHeaders.get(i));
             }
             i--;
         }
     }
 
-    private synchronized void resetChain2(String headerHash, int height) {
-        String sql = constructResetChainSql("2", headerHash, height);
+    private synchronized void resetChain(int number, String headerHash) {
+        String sql = constructResetChainSql(number, headerHash);
         Statement stmt = null;
         try {
             c.close();
@@ -1368,31 +1366,14 @@ public class SQLiteJDBC {
         }
     }
 
-    private synchronized void resetChain1(String headerHash, int height){
-        String sql = constructResetChainSql("1", headerHash, height);
-        Statement stmt = null;
-        try {
-            //this stops table lock problems
-            c.close();
-            c = DriverManager.getConnection("jdbc:sqlite:vault.db");
-            c.setAutoCommit(false);
-            stmt = c.createStatement();
-            stmt.executeUpdate(sql);
-            stmt.close();
-            c.commit();
-        } catch ( Exception e ) {
-            e.printStackTrace();
-        }
-    }
-
-    private synchronized String constructResetChainSql(String number, String headerHash, int height){
+    private synchronized String constructResetChainSql(int number, String headerHash){
         String sql = "WITH RECURSIVE " +
                 "same_chain(HEADERHASH) AS (" +
                 "VALUES('" + headerHash + "') " +
                 "UNION " +
                 "SELECT BLOCKCHAIN.PREVIOUSHASH FROM BLOCKCHAIN, same_chain " +
                 "WHERE BLOCKCHAIN.HEADERHASH = same_chain.HEADERHASH) " +
-                "UPDATE BLOCKCHAIN SET CHAIN = '" + number + "' WHERE HEADERHASH IN " +
+                "UPDATE BLOCKCHAIN SET CHAIN = " + number + " WHERE HEADERHASH IN " +
                 "(SELECT HEADERHASH FROM same_chain); ";
         return sql;
     }
